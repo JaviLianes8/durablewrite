@@ -47,9 +47,22 @@ directory handle.
 ## Why
 
 Writing a file in place can corrupt it: a crash, a full disk or a second reader
-can catch the file half-written. `durablewrite` is a small, typed, zero-dependency
-take on the safe pattern (temp-same-dir, file and directory fsync, `os.replace`),
-correct on both Windows and POSIX.
+can catch the file half-written. The safe pattern is well known (temp file in
+the same directory, fsync, `os.replace`, fsync the directory), but it is fiddly
+to get right on every platform and easy to get subtly wrong.
+
+The options that existed each fall short:
+
+- `atomicwrites`, the de-facto package, was **archived by its author in 2022**
+  and takes no fixes.
+- `boltons.fileutils.atomic_save` has **no Windows support**.
+- The `atomicfile` and `atomicwrite` packages on PyPI are **abandoned** (last
+  releases in 2020 and 2015) and neither is typed.
+- `safewrite` is minimal and obscure.
+
+`durablewrite` is a small, typed, zero-dependency (standard library only) take
+that does the full dance (temp-same-dir, file and directory fsync, `os.replace`)
+and is correct on both Windows and POSIX.
 
 ## License
 
