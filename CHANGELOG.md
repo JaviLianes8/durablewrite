@@ -6,6 +6,47 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+
+- `write_json_atomic(path, obj, ...)`: serialises before touching the disk and
+  writes UTF-8 JSON with a trailing newline and LF line endings.
+- `fsync="none" | "file" | "full"` on every writer, with the `FsyncLevel` type.
+  The `durable` and `fsync_dir` flags keep working.
+- `overwrite=False`: atomic create-if-absent (`link` on POSIX, `MoveFileExW`
+  without the replace flag on Windows).
+- `preserve_mode` (default on), `permissions` and `preserve_owner` options.
+- `follow_symlinks` (default on): writing through a symlink updates the file it
+  points to and keeps the link.
+- `RetryPolicy`, `DEFAULT_RETRY` and `NO_RETRY`: bounded backoff when a Windows
+  sharing or lock violation blocks the rename.
+- `DurableWriteError` (an `OSError`) and `SharingViolationError` (a
+  `PermissionError`).
+- `cleanup_temp_files(directory, older_than=..., target=...)` for temp files
+  left by killed writers.
+- `durablewrite` command line tool (also `python -m durablewrite`): writes
+  standard input to a file atomically, with `--append`, `--json`, `--fsync`,
+  `--no-overwrite`, `--permissions`, `--no-follow-symlinks` and `--attempts`.
+- `GUIDE.md` with the write protocol, per-platform guarantees and sources.
+
+### Changed
+
+- Temp files are named `.<name>.<8 hex digits>.dwtmp` so they can be cleaned up
+  safely.
+- Writing through a symlink no longer replaces the link with a regular file
+  (pass `follow_symlinks=False` for the old behaviour).
+
+### Fixed
+
+- New files were created with mode `0600` and replaced files lost their mode;
+  new files now honour the umask like `open()` and replaced files keep their
+  permission bits.
+- Very long file names no longer overflow the name limit when the temp name is
+  built.
+- Writing to an existing directory raises `IsADirectoryError` before any temp
+  file is created.
+
 ## [0.1.0]
 
 ### Added
