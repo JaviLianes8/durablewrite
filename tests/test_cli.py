@@ -6,7 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from conftest import child_env, leftovers
+import pytest
+from conftest import child_env, is_root, leftovers, posix_only, windows_only
 
 from durablewrite import __version__
 
@@ -30,11 +31,9 @@ def test_stdin_is_written_to_the_target(tmp_path: Path) -> None:
     assert leftovers(tmp_path, target.name) == []
 
 
-def test_reading_and_writing_the_same_file_in_one_pipeline(tmp_path: Path) -> None:
-    target = tmp_path / "names.txt"
-    target.write_bytes(b"b\na\nc\n")
-    # Like a shell running `durablewrite --append names.txt < names.txt`: only the
-    # child keeps the file open, as its standard input.
+def _redirect_target_into_stdin(target: Path) -> tuple[int, bytes]:
+    # Like a shell running `durablewrite --append f < f`: only the child keeps
+    # the file open, as its standard input.
     with open(target, "rb") as source:
         child = subprocess.Popen(
             [sys.executable, "-m", "durablewrite", "--append", str(target)],
@@ -43,7 +42,34 @@ def test_reading_and_writing_the_same_file_in_one_pipeline(tmp_path: Path) -> No
             env=child_env(),
         )
     _, stderr = child.communicate(timeout=60)
-    assert child.returncode == 0, stderr
+    return child.returncode, stderr
+
+
+def test_piping_a_file_into_itself_is_safe(tmp_path: Path) -> None:
+    target = tmp_path / "names.txt"
+    target.write_bytes(b"b\na\nc\n")
+    result = run(str(target), stdin=target.read_bytes())
+    assert result.returncode == 0, result.stderr
+    assert target.read_bytes() == b"b\na\nc\n"
+
+
+@windows_only
+def test_redirecting_the_target_into_stdin_is_refused_on_windows(tmp_path: Path) -> None:
+    target = tmp_path / "names.txt"
+    target.write_bytes(b"b\na\nc\n")
+    status, stderr = _redirect_target_into_stdin(target)
+    assert status == 1
+    assert b"Pipe it instead" in stderr
+    assert target.read_bytes() == b"b\na\nc\n"
+    assert leftovers(tmp_path, target.name) == []
+
+
+@posix_only
+def test_redirecting_the_target_into_stdin_works_on_posix(tmp_path: Path) -> None:
+    target = tmp_path / "names.txt"
+    target.write_bytes(b"b\na\nc\n")
+    status, stderr = _redirect_target_into_stdin(target)
+    assert status == 0, stderr
     assert target.read_bytes() == b"b\na\nc\nb\na\nc\n"
     assert leftovers(tmp_path, target.name) == []
 
@@ -75,6 +101,44 @@ def test_invalid_json_is_refused_and_the_target_kept(tmp_path: Path) -> None:
     assert b"not valid UTF-8 JSON" in result.stderr
     assert target.read_bytes() == b'{"ok": true}'
     assert leftovers(tmp_path, target.name) == []
+
+
+@pytest.mark.parametrize(
+    "payload", [b"NaN", b'{"x": Infinity}', b"[" * 100_000], ids=["nan", "inf", "deep"]
+)
+def test_json_that_is_not_strictly_valid_is_refused(tmp_path: Path, payload: bytes) -> None:
+    target = tmp_path / "c.json"
+    result = run("--json", str(target), stdin=payload)
+    assert result.returncode == 1
+    assert result.stderr.startswith(b"durablewrite: error: standard input is not valid")
+    assert b"Traceback" not in result.stderr
+    assert list(tmp_path.iterdir()) == []
+
+
+@posix_only
+def test_closed_stdin_is_a_clean_error(tmp_path: Path) -> None:
+    target = tmp_path / "f"
+    script = f'exec "{sys.executable}" -m durablewrite "{target}" <&-'
+    result = subprocess.run(["sh", "-c", script], capture_output=True, env=child_env(), timeout=60)
+    assert result.returncode == 1
+    assert result.stderr == b"durablewrite: error: standard input is closed\n"
+    assert not target.exists()
+
+
+@posix_only
+def test_an_unsynced_directory_exits_with_status_three(tmp_path: Path) -> None:
+    if is_root():
+        pytest.skip("root can read any directory")
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    locked.chmod(0o300)
+    try:
+        result = run(str(locked / "f.txt"), stdin=b"new")
+        assert result.returncode == 3
+        assert b"durablewrite: warning:" in result.stderr
+        assert (locked / "f.txt").read_bytes() == b"new"
+    finally:
+        locked.chmod(0o700)
 
 
 def test_no_overwrite_fails_on_an_existing_file(tmp_path: Path) -> None:

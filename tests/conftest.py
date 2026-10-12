@@ -44,5 +44,11 @@ def can_symlink(tmp_path: Path) -> bool:
     return True
 
 
-posix_only = pytest.mark.skipif(os.name == "nt", reason="POSIX permission semantics")
-windows_only = pytest.mark.skipif(os.name != "nt", reason="Windows sharing semantics")
+def is_root() -> bool:
+    """True when running as uid 0 on POSIX, where permission checks are bypassed."""
+    geteuid = getattr(os, "geteuid", None)
+    return geteuid is not None and geteuid() == 0
+
+
+posix_only = pytest.mark.skipif(os.name == "nt", reason="POSIX behaviour")
+windows_only = pytest.mark.skipif(os.name != "nt", reason="Windows behaviour")

@@ -12,6 +12,7 @@ from conftest import leftovers
 
 import durablewrite
 from durablewrite import (
+    DirectorySyncError,
     DurableWriteError,
     SharingViolationError,
     atomic_write,
@@ -25,6 +26,7 @@ from durablewrite import (
 PUBLIC_API: list[str] = [
     "DEFAULT_RETRY",
     "NO_RETRY",
+    "DirectorySyncError",
     "DurableWriteError",
     "FsyncLevel",
     "RetryPolicy",
@@ -62,6 +64,7 @@ def test_errors_fit_the_standard_hierarchy() -> None:
     assert isinstance(error, PermissionError)
     assert isinstance(error, OSError)
     assert issubclass(DurableWriteError, OSError)
+    assert issubclass(DirectorySyncError, DurableWriteError)
     assert pickle.loads(pickle.dumps(error)).filename == "f"
 
 

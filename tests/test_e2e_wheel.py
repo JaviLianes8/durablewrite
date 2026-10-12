@@ -35,10 +35,13 @@ def installed(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
     wheels = list(dist.glob("durablewrite-*.whl"))
     assert [w.name for w in wheels] == [f"durablewrite-{__version__}-py3-none-any.whl"]
     env_dir = tmp_path_factory.mktemp("venv")
-    venv.create(env_dir, with_pip=True)
+    # No pip inside the venv: the host pip installs into it with --python, which
+    # also works where the interpreter ships without ensurepip.
+    venv.create(env_dir, with_pip=False)
     python = env_dir / _BIN / ("python.exe" if os.name == "nt" else "python")
+    host_pip = [sys.executable, "-m", "pip", "--python", str(python)]
     subprocess.run(
-        [str(python), "-m", "pip", "install", "--no-index", "-q", str(wheels[0])],
+        [*host_pip, "install", "--no-index", "--no-deps", "-q", str(wheels[0])],
         check=True,
         timeout=300,
     )
