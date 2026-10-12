@@ -91,6 +91,7 @@ def write_json_atomic(
     sort_keys: bool = False,
     ensure_ascii: bool = False,
     default: Callable[[Any], Any] | None = None,
+    allow_nan: bool = False,
     fsync: FsyncLevel = "full",
     overwrite: bool = True,
     preserve_mode: bool = True,
@@ -104,12 +105,19 @@ def write_json_atomic(
     The value is serialised before any file is touched, so an object that
     cannot be encoded raises :class:`TypeError` (or :class:`ValueError` for a
     circular reference) and leaves both the target and the directory unchanged.
+    ``NaN`` and infinities are not valid JSON (RFC 8259), so they raise
+    :class:`ValueError` unless ``allow_nan=True``.
     The output ends with a single ``\n`` and uses ``\n`` line endings on every
-    platform. ``indent``, ``sort_keys``, ``ensure_ascii`` and ``default`` are
+    platform. ``indent``, ``sort_keys``, ``ensure_ascii``, ``default`` and ``allow_nan`` are
     passed to :func:`json.dumps`; the rest is documented on :func:`atomic_write`.
     """
     text = json.dumps(
-        obj, indent=indent, sort_keys=sort_keys, ensure_ascii=ensure_ascii, default=default
+        obj,
+        indent=indent,
+        sort_keys=sort_keys,
+        ensure_ascii=ensure_ascii,
+        default=default,
+        allow_nan=allow_nan,
     )
     write_bytes_atomic(
         path,

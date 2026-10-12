@@ -6,12 +6,13 @@ import argparse
 import json
 import os
 import shutil
+import stat
 import sys
-from contextlib import suppress
 from typing import IO, NoReturn
 
 from . import __version__
 from ._atomic import atomic_write
+from ._errors import DirectorySyncError
 from ._options import RetryPolicy
 
 _EPILOG = """\
@@ -25,9 +26,14 @@ examples:
   printf 's3cret' | durablewrite --permissions 600 --no-overwrite token.txt
       create a private file, failing if it already exists
 
-The target is replaced only once standard input reaches end of file, so it is
-safe to read from and write to the same file in one pipeline. On any error the
-target is left as it was and the exit status is 1.
+The target is replaced only once standard input reaches end of file, so a
+pipeline may read the same file it writes (sort f | durablewrite f). On POSIX
+`durablewrite f < f` works too; on Windows the shell keeps a redirected file
+open, which blocks the rename, so that form is refused: pipe the file instead.
+Concurrent --append runs may lose each other's lines.
+
+exit status: 0 on success; 1 on any error, with the target left as it was;
+3 when the target was replaced but its directory could not be fsynced.
 """
 
 
@@ -99,14 +105,38 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _reject_constant(name: str) -> None:
+    raise ValueError(f"{name} is not valid JSON")
+
+
+def _check_json(payload: bytes) -> None:
+    try:
+        json.loads(payload.decode("utf-8"), parse_constant=_reject_constant)
+    except (ValueError, RecursionError) as exc:
+        raise ValueError(f"standard input is not valid UTF-8 JSON ({exc})") from exc
+
+
+def _refuse_redirected_target(source: IO[bytes], target: str) -> None:
+    """On Windows, fail fast when standard input is the target file itself."""
+    if os.name != "nt":
+        return
+    try:
+        src, dst = os.fstat(source.fileno()), os.stat(target)
+    except (OSError, ValueError):
+        return
+    if stat.S_ISREG(src.st_mode) and os.path.samestat(src, dst):
+        raise ValueError(
+            "on Windows TARGET cannot also be redirected into standard input: the shell "
+            "keeps it open, which blocks the rename. Pipe it instead: type FILE | durablewrite FILE"
+        )
+
+
 def _write(args: argparse.Namespace, source: IO[bytes]) -> None:
+    _refuse_redirected_target(source, args.target)
     payload: bytes | None = None
     if args.json:
         payload = source.read()
-        try:
-            json.loads(payload.decode("utf-8"))
-        except ValueError as exc:
-            raise ValueError(f"standard input is not valid UTF-8 JSON ({exc})") from exc
+        _check_json(payload)
     with atomic_write(
         args.target,
         "wb",
@@ -126,24 +156,19 @@ def _write(args: argparse.Namespace, source: IO[bytes]) -> None:
             out.write(payload)
         else:
             shutil.copyfileobj(source, out)
-        _release(source)
-
-
-def _release(source: IO[bytes]) -> None:
-    """Close our handle on standard input once it is drained.
-
-    With ``durablewrite f < f`` this process itself holds ``f`` open, and on
-    Windows an open handle without ``FILE_SHARE_DELETE`` blocks the rename.
-    """
-    with suppress(OSError, ValueError):
-        os.close(source.fileno())
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the command line tool and return its exit status."""
     args = build_parser().parse_args(argv)
+    if sys.stdin is None:
+        print("durablewrite: error: standard input is closed", file=sys.stderr)
+        return 1
     try:
         _write(args, sys.stdin.buffer)
+    except DirectorySyncError as exc:
+        print(f"durablewrite: warning: {args.target}: {exc}", file=sys.stderr)
+        return 3
     except (OSError, ValueError) as exc:
         print(f"durablewrite: error: {exc}", file=sys.stderr)
         return 1
