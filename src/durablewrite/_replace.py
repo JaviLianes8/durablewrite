@@ -8,6 +8,7 @@ import stat
 from contextlib import suppress
 
 from ._errors import SharingViolationError
+from ._fs import try_remove
 from ._options import RetryPolicy
 
 # ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION.
@@ -62,10 +63,32 @@ def publish(tmp: str, target: str, *, overwrite: bool, retry: RetryPolicy) -> No
             if delay is None:
                 error = SharingViolationError(
                     errno.EACCES,
-                    f"target stayed locked by another process after {attempt} attempts",
+                    f"rename kept failing with a sharing, lock or access-denied error "
+                    f"after {attempt} attempts (is another process holding the file open?)",
                     target,
                 )
                 error.attempts = attempt
                 raise error from exc
             retry.sleep(delay)
             attempt += 1
+
+
+def remove_temp(tmp: str, retry: RetryPolicy) -> bool:
+    """Remove the temp file on an error path, waiting out Windows locks.
+
+    Never raises, so it cannot mask the error being handled. Returns False if
+    the file is left behind (still locked, or another error); such files are
+    what :func:`~durablewrite.cleanup_temp_files` reclaims.
+    """
+    delays = retry.delays()
+    while True:
+        outcome = try_remove(tmp)
+        if outcome is not None:
+            return outcome
+        delay = next(delays, None)
+        if delay is None:
+            return False
+        try:
+            retry.sleep(delay)
+        except Exception:
+            return False

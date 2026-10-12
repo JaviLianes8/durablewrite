@@ -8,17 +8,17 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import IO, Any
 
+from ._errors import DirectorySyncError
 from ._fs import (
     StrPath,
     apply_metadata,
     create_temp,
+    existing_stat,
     fsync_directory,
-    remove_quietly,
     resolve_target,
-    stat_or_none,
 )
 from ._options import DEFAULT_RETRY, FsyncLevel, RetryPolicy, resolve_fsync
-from ._replace import publish
+from ._replace import publish, remove_temp
 
 _VALID_MODES = ("w", "wb")
 
@@ -57,7 +57,10 @@ def atomic_write(
     the final rename never crosses a filesystem). When the block exits normally
     the data is flushed, fsynced according to ``fsync``, and moved onto ``path``
     with ``os.replace``. If the block raises, ``path`` is untouched and the temp
-    file is removed.
+    file is removed. Closing the handle inside the block is an error: the write
+    is discarded and :class:`ValueError` is raised. While it is written, the
+    temp file is only readable by its owner whenever the final mode comes from
+    ``permissions`` or from the replaced file.
 
     Args:
         path: The file to create or replace.
@@ -81,23 +84,28 @@ def atomic_write(
         retry: How long to retry a rename blocked by a Windows lock.
 
     Raises:
-        ValueError: An invalid ``mode``, ``fsync`` or argument combination.
-        IsADirectoryError: ``path`` is an existing directory.
+        ValueError: An invalid ``mode``, ``fsync`` or argument combination, or
+            a ``path`` that is empty or ends with a path separator.
+        IsADirectoryError: ``path`` is an existing directory (or, when
+            following symlinks, a link to one).
         FileExistsError: ``overwrite`` is False and ``path`` exists.
         SharingViolationError: The rename stayed blocked for the whole retry budget.
+        DirectorySyncError: The file was replaced, but the directory fsync failed.
     """
     binary = _check_mode(mode, encoding, newline)
     sync_file, sync_dir = resolve_fsync(fsync, durable, fsync_dir)
     target = resolve_target(os.fspath(path), follow_symlinks)
-    if os.path.isdir(target):
+    if os.path.isdir(target) and not os.path.islink(target):
         raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
     if not overwrite and os.path.lexists(target):
         raise FileExistsError(errno.EEXIST, "target already exists", target)
     directory = os.path.dirname(os.path.abspath(target))
-    existing = stat_or_none(target)
-    fd, tmp = create_temp(directory, os.path.basename(target))
+    existing = existing_stat(target, follow_symlinks)
+    private = permissions is not None or (preserve_mode and existing is not None)
+    tmp: str | None = None
     published = False
     try:
+        fd, tmp = create_temp(directory, os.path.basename(target), private)
         try:
             if binary:
                 handle: IO[Any] = os.fdopen(fd, "wb")
@@ -121,8 +129,13 @@ def atomic_write(
                 os.fsync(f.fileno())
         publish(tmp, target, overwrite=overwrite, retry=retry)
         published = True
-        if sync_dir:
-            fsync_directory(directory)
     finally:
-        if not published:
-            remove_quietly(tmp)
+        if tmp is not None and not published:
+            remove_temp(tmp, retry)
+    if sync_dir:
+        try:
+            fsync_directory(directory)
+        except OSError as exc:
+            raise DirectorySyncError(
+                exc.errno, f"file replaced, but its directory was not synced: {exc}", directory
+            ) from exc

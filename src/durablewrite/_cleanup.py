@@ -6,9 +6,10 @@ import os
 import re
 import time
 
-from ._fs import TEMP_SUFFIX, StrPath, temp_prefix
+from ._fs import TEMP_SUFFIX, StrPath, temp_stem
 
-_TEMP_NAME = re.compile(r"^\..+\.[0-9a-f]{8}" + re.escape(TEMP_SUFFIX) + r"$")
+_TAIL = r"\.[0-9a-f]{8}" + re.escape(TEMP_SUFFIX) + r"$"
+_TEMP_NAME = re.compile(r"^\..+" + _TAIL, re.DOTALL)
 
 
 def cleanup_temp_files(
@@ -28,8 +29,9 @@ def cleanup_temp_files(
     Args:
         directory: The directory to scan (not recursive).
         older_than: Minimum age in seconds, by modification time. The default of
-            one hour leaves temp files of writers that are still running alone;
-            pass ``0`` only when you know no writer is active.
+            one hour leaves alone the temp files of running writers, unless a
+            writer keeps one open for longer than that; pass ``0`` only when
+            you know no writer is active.
         target: Restrict the cleanup to temp files of this one target file.
         now: The current time as a Unix timestamp; defaults to :func:`time.time`.
 
@@ -40,13 +42,14 @@ def cleanup_temp_files(
     if older_than < 0:
         raise ValueError("older_than must not be negative")
     cutoff = (time.time() if now is None else now) - older_than
-    prefix = None if target is None else temp_prefix(os.path.basename(os.fspath(target)))
+    pattern = _TEMP_NAME
+    if target is not None:
+        stem = temp_stem(os.path.basename(os.fspath(target)))
+        pattern = re.compile(r"^\." + re.escape(stem) + _TAIL, re.DOTALL)
     removed: list[str] = []
     with os.scandir(directory) as entries:
         for entry in entries:
-            if not _TEMP_NAME.match(entry.name):
-                continue
-            if prefix is not None and not entry.name.startswith(prefix):
+            if not pattern.match(entry.name):
                 continue
             try:
                 if not entry.is_file(follow_symlinks=False):
