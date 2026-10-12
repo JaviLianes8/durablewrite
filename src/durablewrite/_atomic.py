@@ -1,37 +1,37 @@
-"""Atomic, durable file writes built on a same-directory temp file plus os.replace."""
+"""The atomic write context manager: temp file, flush, fsync, rename, fsync dir."""
 
 from __future__ import annotations
 
+import errno
 import os
-import tempfile
 from collections.abc import Iterator
-from contextlib import contextmanager, suppress
-from typing import IO, Any, Union
+from contextlib import contextmanager
+from typing import IO, Any
 
-StrPath = Union[str, "os.PathLike[str]"]
+from ._fs import (
+    StrPath,
+    apply_metadata,
+    create_temp,
+    fsync_directory,
+    remove_quietly,
+    resolve_target,
+    stat_or_none,
+)
+from ._options import DEFAULT_RETRY, FsyncLevel, RetryPolicy, resolve_fsync
+from ._replace import publish
 
 _VALID_MODES = ("w", "wb")
 
 
-def _silent_remove(path: str) -> None:
-    """Remove a leftover temp file, ignoring the case where it is already gone."""
-    with suppress(FileNotFoundError):
-        os.remove(path)
-
-
-def _fsync_dir(directory: str) -> None:
-    """Flush the directory entry so a rename survives a crash.
-
-    Windows exposes no fsyncable directory handle (opening a directory for
-    os.fsync fails), so the call is a documented no-op there.
-    """
-    if os.name == "nt":
-        return
-    fd = os.open(directory, os.O_RDONLY)
-    try:
-        os.fsync(fd)
-    finally:
-        os.close(fd)
+def _check_mode(mode: str, encoding: str | None, newline: str | None) -> bool:
+    if mode not in _VALID_MODES:
+        raise ValueError(f"mode must be one of {_VALID_MODES!r}, got {mode!r}")
+    binary = mode == "wb"
+    if binary and encoding is not None:
+        raise ValueError("encoding is not allowed in binary mode")
+    if binary and newline is not None:
+        raise ValueError("newline is not allowed in binary mode")
+    return binary
 
 
 @contextmanager
@@ -43,81 +43,86 @@ def atomic_write(
     newline: str | None = None,
     durable: bool = True,
     fsync_dir: bool = True,
+    fsync: FsyncLevel | None = None,
+    overwrite: bool = True,
+    preserve_mode: bool = True,
+    permissions: int | None = None,
+    preserve_owner: bool = False,
+    follow_symlinks: bool = True,
+    retry: RetryPolicy = DEFAULT_RETRY,
 ) -> Iterator[IO[Any]]:
     """Write to ``path`` so readers only ever see the old file or the complete new one.
 
-    The data is written to a temp file in the same directory, flushed and (by
-    default) fsynced, then moved onto ``path`` with ``os.replace``, which is
-    atomic on the same volume on both Windows and POSIX. If the block raises,
-    ``path`` is left untouched and the temp file is removed.
+    The block writes to a temp file created in the target's own directory (so
+    the final rename never crosses a filesystem). When the block exits normally
+    the data is flushed, fsynced according to ``fsync``, and moved onto ``path``
+    with ``os.replace``. If the block raises, ``path`` is untouched and the temp
+    file is removed.
 
-    ``mode`` is ``"w"`` (text) or ``"wb"`` (bytes). Set ``durable=False`` to skip
-    the file fsync, and ``fsync_dir=False`` to skip flushing the directory entry.
+    Args:
+        path: The file to create or replace.
+        mode: ``"w"`` for text (UTF-8 unless ``encoding`` is given) or ``"wb"``.
+        encoding: Text encoding; not allowed in binary mode.
+        newline: Passed to the text wrapper as in :func:`open`.
+        durable: Legacy flag for the file fsync; ignored when ``fsync`` is given.
+        fsync_dir: Legacy flag for the directory fsync; ignored when ``fsync`` is given.
+        fsync: ``"none"``, ``"file"`` or ``"full"`` (see :data:`FsyncLevel`).
+            Defaults to the legacy flags, which mean ``"full"``.
+        overwrite: When False, publish only if nothing exists at ``path`` and
+            raise :class:`FileExistsError` otherwise, atomically.
+        preserve_mode: Copy the permission bits of an existing target (POSIX).
+            New files get ``0o666`` minus the umask, as with :func:`open`.
+        permissions: Explicit permission bits; wins over ``preserve_mode``.
+            On Windows only the read-only flag is affected.
+        preserve_owner: Copy uid and gid of an existing target (POSIX only;
+            usually needs privileges to change the uid). Ignored on Windows.
+        follow_symlinks: When ``path`` is a symlink, replace the file it points
+            to and keep the link (default), or replace the link itself.
+        retry: How long to retry a rename blocked by a Windows lock.
+
+    Raises:
+        ValueError: An invalid ``mode``, ``fsync`` or argument combination.
+        IsADirectoryError: ``path`` is an existing directory.
+        FileExistsError: ``overwrite`` is False and ``path`` exists.
+        SharingViolationError: The rename stayed blocked for the whole retry budget.
     """
-    if mode not in _VALID_MODES:
-        raise ValueError(f"mode must be one of {_VALID_MODES!r}, got {mode!r}")
-    binary = mode == "wb"
-    if binary and encoding is not None:
-        raise ValueError("encoding is not allowed in binary mode")
-    if binary and newline is not None:
-        raise ValueError("newline is not allowed in binary mode")
-    if not binary and encoding is None:
-        encoding = "utf-8"
-
-    target = os.fspath(path)
+    binary = _check_mode(mode, encoding, newline)
+    sync_file, sync_dir = resolve_fsync(fsync, durable, fsync_dir)
+    target = resolve_target(os.fspath(path), follow_symlinks)
+    if os.path.isdir(target):
+        raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
+    if not overwrite and os.path.lexists(target):
+        raise FileExistsError(errno.EEXIST, "target already exists", target)
     directory = os.path.dirname(os.path.abspath(target))
-    base = os.path.basename(target) or "out"
-    fd, tmp = tempfile.mkstemp(dir=directory, prefix=f".{base}.", suffix=".tmp")
-
-    replaced = False
+    existing = stat_or_none(target)
+    fd, tmp = create_temp(directory, os.path.basename(target))
+    published = False
     try:
-        handle: IO[Any]
-        if binary:
-            handle = os.fdopen(fd, "wb")
-        else:
-            handle = os.fdopen(fd, "w", encoding=encoding, newline=newline)
+        try:
+            if binary:
+                handle: IO[Any] = os.fdopen(fd, "wb")
+            else:
+                handle = os.fdopen(fd, "w", encoding=encoding or "utf-8", newline=newline)
+        except BaseException:
+            os.close(fd)
+            raise
         with handle as f:
             yield f
             f.flush()
-            if durable:
+            apply_metadata(
+                f.fileno(),
+                tmp,
+                existing,
+                preserve_mode=preserve_mode,
+                permissions=permissions,
+                preserve_owner=preserve_owner,
+            )
+            if sync_file:
                 os.fsync(f.fileno())
-        os.replace(tmp, target)
-        replaced = True
-        if fsync_dir:
-            _fsync_dir(directory)
+        publish(tmp, target, overwrite=overwrite, retry=retry)
+        published = True
+        if sync_dir:
+            fsync_directory(directory)
     finally:
-        if not replaced:
-            _silent_remove(tmp)
-
-
-def write_text_atomic(
-    path: StrPath,
-    text: str,
-    encoding: str = "utf-8",
-    *,
-    newline: str | None = None,
-    durable: bool = True,
-    fsync_dir: bool = True,
-) -> None:
-    """Atomically replace ``path`` with ``text`` (see :func:`atomic_write`)."""
-    with atomic_write(
-        path,
-        "w",
-        encoding=encoding,
-        newline=newline,
-        durable=durable,
-        fsync_dir=fsync_dir,
-    ) as f:
-        f.write(text)
-
-
-def write_bytes_atomic(
-    path: StrPath,
-    data: bytes,
-    *,
-    durable: bool = True,
-    fsync_dir: bool = True,
-) -> None:
-    """Atomically replace ``path`` with ``data`` (see :func:`atomic_write`)."""
-    with atomic_write(path, "wb", durable=durable, fsync_dir=fsync_dir) as f:
-        f.write(data)
+        if not published:
+            remove_quietly(tmp)
