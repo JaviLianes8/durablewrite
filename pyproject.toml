@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "durablewrite"
-version = "0.1.0"
+version = "0.2.0"
 description = "Durable, cross-platform atomic file writes: temp-same-dir plus os.replace plus file and dir fsync"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,6 +19,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = []
+
+[project.scripts]
+durablewrite = "durablewrite._cli:main"
 
 [project.optional-dependencies]
 dev = ["ruff", "mypy", "pytest", "build", "twine"]
@@ -44,8 +47,10 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
+mypy_path = "src"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+markers = ["slow: real multi-process and packaging tests"]
