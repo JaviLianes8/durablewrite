@@ -28,8 +28,8 @@ pass that flag, and antivirus scanners and the search indexer open freshly
 written files for a moment. A frozen `RetryPolicy` (attempts, initial delay,
 multiplier, cap, injectable `sleep`) retries only those Windows error codes, never
 a read-only target or a POSIX `EACCES`, and raises a typed
-`SharingViolationError` (a `PermissionError`) when the budget runs out. The temp
-file is always removed on that path.
+`SharingViolationError` (a `PermissionError`) when the budget runs out. Removal
+of the temp file is retried under the same policy.
 
 ### 3. Explicit fsync levels (clarity, high)
 `fsync="none" | "file" | "full"` replaces the two loosely related booleans with
@@ -59,8 +59,8 @@ filesystem. `follow_symlinks=False` replaces the link itself with a regular file
 ### 7. Stale temp file cleanup (operations, medium)
 A process killed mid-write cannot remove its temp file. Temp files now carry a
 distinctive `.dwtmp` suffix and `cleanup_temp_files(directory, older_than=...)`
-removes only those, only once they are old enough that no live writer can still
-own them.
+removes only those, only once they are older than a chosen age (one hour by
+default).
 
 ### 8. Typed errors and early validation (ergonomics, medium)
 `DurableWriteError` is the base of errors the library raises itself and
@@ -87,7 +87,7 @@ script.
 ## Out of scope this round
 
 - `ReplaceFileW` on Windows. It preserves ACLs and attributes of the replaced
-  file, but it is documented to fail half way (`ERROR_UNABLE_TO_MOVE_REPLACEMENT`)
+  file, but it is documented to fail half way (`ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`)
   and requires the target to exist, so it would weaken the core promise.
 - `F_FULLFSYNC` on macOS. Documented, not issued, because it cannot be exercised
   by the local test suite.

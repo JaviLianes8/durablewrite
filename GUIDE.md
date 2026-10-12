@@ -13,8 +13,13 @@ For `atomic_write(path)` and every helper built on it:
    working. With `follow_symlinks=False` the link itself is replaced by a
    regular file. An existing directory is rejected with `IsADirectoryError`.
 2. **Create a temp file in the target's own directory**, named
-   `.<name>.<8 hex digits>.dwtmp`, with `O_CREAT | O_EXCL` and mode `0o666`, so
-   the process umask applies exactly as it does for `open()`. Same directory
+   `.<name>.<8 hex digits>.dwtmp`, with `O_CREAT | O_EXCL`. A new file is created
+   with mode `0o666`, so the process umask applies exactly as it does for
+   `open()`. When the final mode comes from `permissions` or from the replaced
+   file, the temp file starts as `0o600` and is widened only after the data is
+   written, so restricted content is never readable by others in between.
+   Names longer than 48 characters keep a readable head plus a hash of the full
+   name, so the temp name stays within the 255-byte limit. Same directory
    means same filesystem, which `rename` needs to be atomic: Python documents
    that `os.replace` "may fail if src and dst are on different filesystems" [1].
 3. **Write** your data into it.
@@ -47,6 +52,8 @@ target is untouched. That includes exceptions inside your `with` block and
 | Permission bits kept on replace | Yes (`preserve_mode`) | Not applicable; see below |
 | Owner kept on replace | Opt-in (`preserve_owner`), needs privilege to change uid | No |
 | Replace while another process has the target open | Yes; the reader keeps the old inode | Retried, then `SharingViolationError` |
+| A reader can always open the target | Yes | No: an `open()` racing a rename can fail with `PermissionError` (never `FileNotFoundError`, never torn) |
+| Replace a read-only target | Yes, if the directory is writable | No, `PermissionError` (not retried) |
 
 The crash and concurrency rows are exercised by `tests/test_crash.py` and
 `tests/test_concurrency.py`, which run on both Windows (NTFS) and Linux (ext4)
@@ -66,8 +73,10 @@ calls above and on the filesystem honouring them [3].
 [3]: fsync the file, rename, fsync the directory. Do not rely on ext4's
 `auto_da_alloc` heuristic for "replace via rename" [4]; it is a mount option and
 other filesystems such as XFS have no equivalent [5]. If the directory fsync
-raises (some network and FUSE filesystems refuse it), the new content is
-already in place and the error is reported to you.
+raises (some network and FUSE filesystems refuse it, and it fails when the
+directory is writable but not readable), the new content is already in place
+and `DirectorySyncError` is raised so you know the rename may not be durable
+(`tests/test_hardening.py`).
 
 ### macOS
 
@@ -94,8 +103,12 @@ with an unflushed drive cache.
   antivirus scanners and the search indexer briefly open new files. These
   errors are retried with bounded backoff (`RetryPolicy`, about 1.1 seconds by
   default). A read-only target is never retried. When the budget runs out,
-  `SharingViolationError` is raised, the target is untouched and the temp file
-  is removed (`tests/test_sharing.py`).
+  `SharingViolationError` is raised and the target is untouched
+  (`tests/test_sharing.py`). A directory ACL that denies the rename produces
+  the same error code and ends the same way.
+- The temp file can itself be held open (an antivirus scan of the fresh file).
+  On every error path its removal is retried under the same `RetryPolicy`; if
+  it is still locked after that, it is left for `cleanup_temp_files`.
 - Permission bits do not exist on Windows. `permissions` only toggles the
   read-only attribute and `preserve_mode` does nothing. The new file inherits
   the ACL of its directory; an explicit ACL on the old file is not copied.
@@ -127,7 +140,9 @@ The default (`follow_symlinks=True`) writes to the file the link points to and
 creates the temp file beside that file, so the rename never crosses a
 filesystem even when the link lives elsewhere. A dangling link creates its
 target. `follow_symlinks=False` replaces the link with a regular file, which is
-what plain `os.replace` does.
+what plain `os.replace` does; on POSIX this also works when the link points to
+a directory. The replaced link counts as a new file, so it does not inherit the
+mode of whatever it pointed to.
 
 ## Side effects of replacing a file
 
@@ -143,17 +158,27 @@ Replacing a file creates a new file, by design. As a consequence:
 
 A writer that is killed between creating its temp file and renaming it cannot
 clean up. `cleanup_temp_files(directory, older_than=3600)` removes only regular
-files matching `.<name>.<8 hex digits>.dwtmp` older than the given age, so live
-writers are left alone. The crash test uses it to reclaim every temp file its
+files matching `.<name>.<8 hex digits>.dwtmp` older than the given age, by
+modification time. A writer that keeps its temp file open for longer than that
+age could lose it, so choose an age longer than your slowest write. With
+`target=`, only temp files of that exact target name are considered. The crash test uses it to reclaim every temp file its
 kills leave behind.
 
 ## Command line
 
 `durablewrite TARGET` copies standard input into TARGET with the protocol
 above, like `sponge` from moreutils. TARGET is replaced only after standard
-input ends, so `sort f | durablewrite f` and `durablewrite --append f < f` are
-safe. Run `durablewrite --help` for every option and examples. Every error,
-including a usage error, exits with status 1 and leaves TARGET unchanged.
+input ends, so `sort f | durablewrite f` is safe on every platform, and
+`durablewrite --append f < f` works on POSIX. On Windows the shell (and the
+console-script launcher) keep a redirected file open without
+`FILE_SHARE_DELETE`, which blocks the rename, so the command detects that
+standard input is TARGET and refuses at once; pipe the file instead.
+
+Exit status: 0 on success; 1 on any error, including a usage error, with TARGET
+left as it was; 3 when TARGET was replaced but its directory could not be
+fsynced. `--json` accepts only strict JSON (no `NaN` or `Infinity`). Each
+`--append` run is atomic, but two concurrent runs on the same file can lose
+one run's data, because each starts from the content it read.
 
 ## Sources
 

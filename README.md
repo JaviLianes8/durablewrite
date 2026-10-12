@@ -44,7 +44,9 @@ with atomic_write("image.png", "wb") as f:
 | `follow_symlinks` | `True` | write through a symlink and keep it, or replace the link itself |
 | `retry` | `DEFAULT_RETRY` | bounded retry while Windows reports the target locked |
 
-New files get `0o666` minus your umask, exactly like `open()`.
+New files get `0o666` minus your umask, exactly like `open()`. When the final mode
+comes from `permissions` or from the replaced file, the temp file is created as
+`0o600`, so a secret is never readable by others while it is being written.
 
 ```python
 from durablewrite import NO_RETRY, RetryPolicy, SharingViolationError, write_text_atomic
@@ -82,14 +84,20 @@ printf 's3cret' | durablewrite --permissions 600 --no-overwrite token.txt
 Options: `--append`, `--json` (refuse invalid JSON), `--fsync {none,file,full}`,
 `--no-overwrite`, `--permissions OCTAL`, `--no-follow-symlinks`,
 `--attempts N`. Errors go to standard error with exit status 1, and TARGET is
-left as it was. `python -m durablewrite` works too.
+left as it was. If TARGET was replaced but its directory could not be fsynced,
+the exit status is 3. `python -m durablewrite` works too.
+
+On Windows, redirecting TARGET into the command (`durablewrite f < f`) is refused,
+because the shell keeps the redirected file open and that blocks the rename; pipe
+it instead (`type f | durablewrite f`). Concurrent `--append` runs on one file may
+lose each other's lines: each run is atomic, but they do not merge.
 
 ## Guarantees and limits
 
 The short version (details and sources in [GUIDE.md](GUIDE.md)):
 
 - **Atomic for readers and against process crashes** on local filesystems,
-  Windows and POSIX. Proven by a seeded test that kills a writer process at
+  Windows and POSIX. Exercised by a seeded test that kills a writer process at
   random moments and by a multi-process concurrent writer test.
 - **Durable against power loss** on Linux with `fsync="full"`. On macOS, `fsync`
   does not flush the drive cache (`F_FULLFSYNC` is not issued). On Windows the
@@ -97,7 +105,11 @@ The short version (details and sources in [GUIDE.md](GUIDE.md)):
 - **Windows**: `os.replace` is `MoveFileExW`, not documented as atomic by
   Microsoft; tested on NTFS, not guaranteed on FAT or network shares. An open
   handle elsewhere blocks the rename; it is retried for about a second by
-  default, then `SharingViolationError` is raised.
+  default, then `SharingViolationError` is raised. While a rename is in flight,
+  a concurrent `open()` of the target can fail with `PermissionError`; readers
+  that poll should retry. A read-only target cannot be replaced on Windows.
+- **After the rename**, a failing directory fsync raises `DirectorySyncError`:
+  the new content is in place, but the rename may not survive a power loss.
 - Replacing a file creates a new one: other hard links keep the old content,
   and extended attributes, ACLs and alternate data streams are not copied.
 
