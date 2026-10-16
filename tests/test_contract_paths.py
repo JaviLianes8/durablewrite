@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import os
 from pathlib import Path
 
@@ -96,6 +97,32 @@ def test_errors_before_the_block_name_the_path_as_given(
     with pytest.raises(IsADirectoryError) as folder:
         atomic_write("d").__enter__()
     assert (taken.value.filename, folder.value.filename) == ("e.txt", "d")
+    assert taken.value.errno == errno.EEXIST and folder.value.errno == errno.EISDIR
+
+
+def test_a_followed_link_is_named_by_the_file_it_points_to(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "real.txt").write_text("x")
+    try:
+        (tmp_path / "link.txt").symlink_to(tmp_path / "real.txt")
+    except OSError:
+        pytest.skip("symlinks are not available to this user")
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(FileExistsError) as taken:
+        atomic_write("link.txt", overwrite=False).__enter__()
+    assert os.path.realpath(taken.value.filename) == os.path.realpath(tmp_path / "real.txt")
+    with pytest.raises(FileExistsError) as kept:
+        atomic_write("link.txt", overwrite=False, follow_symlinks=False).__enter__()
+    assert kept.value.filename == "link.txt"
+
+
+def test_a_small_positive_age_still_respects_the_file_time(tmp_path: Path) -> None:
+    young = tmp_path / ".t.0123abcd.dwtmp"
+    young.write_bytes(b"")
+    os.utime(young, (1_000_000, 1_000_000))
+    assert cleanup_temp_files(tmp_path, older_than=0.5, now=1_000_000.1) == []
+    assert cleanup_temp_files(tmp_path, older_than=0.5, now=1_000_000.6) == [str(young)]
 
 
 def test_cleanup_with_age_zero_removes_files_dated_in_the_future(tmp_path: Path) -> None:

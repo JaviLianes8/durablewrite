@@ -29,8 +29,9 @@ def test_concurrent_writers_never_expose_a_torn_file(tmp_path: Path) -> None:
     while any(child.poll() is None for child in children):
         try:
             data = target.read_bytes()
-        except PermissionError:
-            # Windows may refuse an open while a rename onto the name is in flight.
+        except (PermissionError, FileNotFoundError):
+            # Windows may refuse an open, or briefly miss the name, while a rename
+            # onto it is in flight (see the guide); never on POSIX.
             assert os.name == "nt"
             blocked_reads += 1
             continue

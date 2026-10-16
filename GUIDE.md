@@ -61,7 +61,7 @@ target is untouched. That includes exceptions inside your `with` block and
 | Permission bits kept on replace | Yes (`preserve_mode`) | Not applicable; see below |
 | Owner kept on replace | Opt-in (`preserve_owner`), needs privilege to change uid | No |
 | Replace while another process has the target open | Yes; the reader keeps the old inode | Retried, then `SharingViolationError` |
-| A reader can always open the target | Yes | No: an `open()` racing a rename can fail with `PermissionError` (never `FileNotFoundError`, never torn) |
+| A reader can always open the target | Yes | No: an `open()` racing a rename can fail for a moment with `PermissionError` or, rarely, `FileNotFoundError` (never torn); readers that poll should retry both |
 | Replace a read-only target | Yes, if the directory is writable | No, `PermissionError` (not retried) |
 
 ### Process crash versus power loss
@@ -112,8 +112,10 @@ path is pinned by `tests/test_contract_platform.py`.
 - There is no directory fsync through the APIs Python exposes; write-through
   takes its place.
 - Microsoft does not document the rename as atomic. On a local NTFS volume it is
-  a single metadata operation and our tests never observed a torn or missing
-  target. On FAT volumes and SMB shares the behaviour depends on the filesystem
+  a single metadata operation and our tests never observed a torn target. A
+  reader opening the name while it is being replaced can, rarely, get
+  `FileNotFoundError` (about 1 open in 2,000 with four writers hammering one
+  file); 0.2.0 behaved the same. On FAT volumes and SMB shares the behaviour depends on the filesystem
   or server and is not guaranteed.
 - The rename fails with `ERROR_ACCESS_DENIED`, `ERROR_SHARING_VIOLATION` or
   `ERROR_LOCK_VIOLATION` while any process holds the target open without
@@ -267,8 +269,9 @@ Code that passes the documented argument types keeps working; the differences:
   infinite age and a non-finite `now`.
 - `cleanup_temp_files` removes read-only temp files on Windows, and
   `older_than=0` removes every matching temp file whatever its time.
-- Errors raised before the block runs name the path as given; errors from the
-  rename name the absolute target (a relative target is pinned when the write
+- Errors raised before the block runs name the path as given (for a followed
+  symlink, the file it points to); errors from the rename name the absolute
+  target (a relative target is pinned when the write
   starts).
 - Error messages no longer repeat the refused value. The command line quotes at
   most 40 characters of the values it checks itself, and every error or warning

@@ -109,8 +109,9 @@ has the details and the sources.
   documented calls.
 - **Windows**: an open handle elsewhere blocks the rename; it is retried for
   about a second by default, then `SharingViolationError` is raised. A
-  concurrent `open()` of the target can fail with `PermissionError` while a
-  rename is in flight. A read-only target cannot be replaced.
+  concurrent `open()` of the target can fail for a moment with
+  `PermissionError` or, rarely, `FileNotFoundError` while a rename is in
+  flight; readers that poll should retry. A read-only target cannot be replaced.
 - **After the rename**, a failing directory fsync raises `DirectorySyncError`:
   the new content is in place, but the rename may not survive a power loss.
 - Replacing a file creates a new one: other hard links keep the old content, and

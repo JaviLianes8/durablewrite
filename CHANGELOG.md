@@ -35,7 +35,8 @@ follow Semantic Versioning from here on.
   `older_than=0` removes every matching temp file whatever its time (on Windows
   with Python 3.10 to 3.12 a file just written could look newer than the clock
   and be skipped).
-- Errors raised before the block runs name the path as it was given; errors from
+- Errors raised before the block runs name the path as it was given (for a
+  followed symlink, the file it points to); errors from
   the rename name the target as an absolute path, since a relative target is
   pinned to the working directory when the write starts.
 - A `retry` that is not a `RetryPolicy` raises `TypeError` (0.2.0 raised
