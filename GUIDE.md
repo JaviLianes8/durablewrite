@@ -115,7 +115,9 @@ path is pinned by `tests/test_contract_platform.py`.
   `FILE_SHARE_DELETE` [10]. Python's `open()` does not pass that flag, and
   antivirus scanners and the search indexer briefly open new files. These errors
   are retried with bounded backoff (`RetryPolicy`, about 1.1 seconds by default).
-  A read-only target is never retried. When the budget runs out,
+  A read-only target is never retried. Several processes replacing one file
+  while others read it can keep it locked for longer than that on a slow or busy
+  machine; give such writers a larger `RetryPolicy`. When the budget runs out,
   `SharingViolationError` is raised and the target is untouched
   (`tests/test_sharing.py`). A directory ACL that denies the rename produces the
   same error code and ends the same way.
