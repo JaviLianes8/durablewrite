@@ -23,6 +23,16 @@ def check_path(path: Any) -> str:
     return text
 
 
+def check_target(path: Any) -> str:
+    """Like :func:`check_path`, and the path must name a file."""
+    text = check_path(path)
+    if not text:
+        raise ValueError("path must not be empty")
+    if text.endswith(os.sep) or (os.altsep is not None and text.endswith(os.altsep)):
+        raise ValueError("path must name a file, not end with a separator")
+    return text
+
+
 def check_permissions(permissions: object) -> int | None:
     """Permission bits must be an int from 0 to 0o7777 (or None)."""
     if permissions is None:

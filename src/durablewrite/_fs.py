@@ -46,10 +46,6 @@ def temp_stem(base: str) -> str:
 
 def resolve_target(path: str, follow_symlinks: bool) -> str:
     """Return the path whose directory entry the rename will replace."""
-    if not path:
-        raise ValueError("path must not be empty")
-    if path.endswith(os.sep) or (os.altsep is not None and path.endswith(os.altsep)):
-        raise ValueError("path must name a file, not end with a separator")
     if follow_symlinks and os.path.islink(path):
         return os.path.realpath(path)
     return path

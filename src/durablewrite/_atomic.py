@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import AbstractContextManager
 from typing import IO, Any, Literal, overload
 
-from ._check import check_path, check_permissions, check_text_options
+from ._check import check_permissions, check_target, check_text_options
 from ._fs import StrPath
 from ._options import DEFAULT_RETRY, FsyncLevel, RetryPolicy, resolve_fsync
 from ._write import Plan, run
@@ -33,7 +33,7 @@ def build_plan(
     if not isinstance(retry, RetryPolicy):
         raise TypeError("retry must be a RetryPolicy")
     return Plan(
-        path=check_path(path),
+        path=check_target(path),
         binary=binary,
         encoding=encoding,
         newline=newline,
