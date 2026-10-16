@@ -87,4 +87,4 @@ def test_readme_links_are_absolute_and_name_the_guide_and_changelog() -> None:
     assert all(link.startswith("https://") for link in links), links
     assert any(link.endswith("/GUIDE.md") for link in links)
     assert any(link.endswith("/CHANGELOG.md") for link in links)
-    assert "—" not in README
+    assert chr(0x2014) not in README
