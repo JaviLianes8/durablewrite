@@ -143,5 +143,45 @@
       "different filesystems",
       "_commit"
     ]
+  },
+  "lwn-ensuring-data": {
+    "kind": "page",
+    "title": "Jeff Moyer, Ensuring data reaches disk, LWN.net",
+    "url": "https://lwn.net/Articles/457667/",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 84235,
+    "sha256": "0605e7f85328caa60fce214c54b39c7ea85538cb41e5194253b433272f49c1bc",
+    "facts": [
+      "fsync",
+      "rename"
+    ]
+  },
+  "ext4-options": {
+    "kind": "page",
+    "title": "Linux kernel documentation, ext4",
+    "url": "https://docs.kernel.org/admin-guide/ext4.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 41893,
+    "sha256": "76dc80682680e52080a649c6df233e00d332e222a595b957e40f33eba402506b",
+    "facts": [
+      "auto_da_alloc"
+    ]
+  },
+  "createfilew": {
+    "kind": "page",
+    "title": "Microsoft Learn, CreateFileW",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 115313,
+    "sha256": "ae9a704c600c56e7d81d08a53ba38f275016cca38a23dfb4315df0f3b7907afd",
+    "facts": [
+      "FILE_SHARE_DELETE"
+    ]
   }
 }

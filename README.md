@@ -1,11 +1,11 @@
 # durablewrite
 
 Durable, cross-platform atomic file writes for Python. Data goes to a temp file
-in the same directory, is flushed and fsynced, then moved onto the target with
-`os.replace`, and the directory is fsynced. A reader never sees a half-written
-file, and a crash leaves either the previous version or the complete new one.
+in the same directory, is flushed to disk, then renamed onto the target, and the
+rename itself is made durable. A reader never sees a half-written file, and a
+crash leaves either the previous version or the complete new one.
 
-Typed, standard library only, Python 3.10+, Windows and POSIX.
+Typed, standard library only, Python 3.10+, Windows, Linux and macOS.
 
 ## Install
 
@@ -13,7 +13,7 @@ Typed, standard library only, Python 3.10+, Windows and POSIX.
 pip install durablewrite
 ```
 
-## Usage
+## Quick start
 
 ```python
 from durablewrite import atomic_write, write_bytes_atomic, write_json_atomic, write_text_atomic
@@ -24,39 +24,43 @@ write_bytes_atomic("snapshot.bin", b"\x00\x01\x02")
 write_json_atomic("config.json", {"ready": True})  # serialised before any file is touched
 
 # Stream into a file: it is replaced only if the block finishes without an error.
-with atomic_write("report.csv") as f:
+rows = ["id,name", "1,ada", "2,grace"]
+with atomic_write("report.csv", newline="") as f:
     for row in rows:
         f.write(row + "\n")
 
 with atomic_write("image.png", "wb") as f:
-    f.write(data)
+    f.write(b"\x89PNG\r\n\x1a\n")
 ```
 
 ### Options (on every writer)
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `fsync` | `"full"` | `"none"`, `"file"` (fsync the data) or `"full"` (data and directory) |
+| `fsync` | `"full"` | `"none"`, `"file"` (flush the data) or `"full"` (data, then the rename) |
 | `overwrite` | `True` | `False`: create only if absent, atomically, else `FileExistsError` |
 | `preserve_mode` | `True` | keep the permission bits of the file being replaced (POSIX) |
-| `permissions` | `None` | explicit permission bits, e.g. `0o600` |
+| `permissions` | `None` | explicit permission bits from `0` to `0o7777`, e.g. `0o600` |
 | `preserve_owner` | `False` | keep uid and gid of the replaced file (POSIX) |
 | `follow_symlinks` | `True` | write through a symlink and keep it, or replace the link itself |
 | `retry` | `DEFAULT_RETRY` | bounded retry while Windows reports the target locked |
 
-New files get `0o666` minus your umask, exactly like `open()`. When the final mode
-comes from `permissions` or from the replaced file, the temp file is created as
-`0o600`, so a secret is never readable by others while it is being written.
+Arguments are checked when the writer is called, before any file is touched:
+a wrong type raises `TypeError`, a bad value `ValueError`, an unknown encoding
+`LookupError`. New files get `0o666` minus your umask, exactly like `open()`.
+When the final mode comes from `permissions` or from the replaced file, the temp
+file is created as `0o600`, so a secret is never readable by others while it is
+being written.
 
 ```python
-from durablewrite import NO_RETRY, RetryPolicy, SharingViolationError, write_text_atomic
+from durablewrite import RetryPolicy, SharingViolationError, write_text_atomic
 
-write_text_atomic("cache.txt", payload, fsync="none")  # atomic, not durable
-write_text_atomic("token", secret, permissions=0o600, overwrite=False)
+write_text_atomic("cache.txt", "warm", fsync="none")  # atomic, not durable
+write_text_atomic("token", "s3cret", permissions=0o600, overwrite=False)
 
 try:
     write_text_atomic("held.txt", "x", retry=RetryPolicy(max_attempts=20, max_delay=0.2))
-except SharingViolationError as exc:  # a PermissionError; target untouched
+except SharingViolationError as exc:  # a PermissionError; the target is untouched
     print("still locked after", exc.attempts, "attempts")
 ```
 
@@ -66,7 +70,7 @@ at startup:
 ```python
 from durablewrite import cleanup_temp_files
 
-cleanup_temp_files("data/", older_than=3600)  # only *.dwtmp files written by durablewrite
+cleanup_temp_files(".", older_than=3600)  # only .<name>.<8 hex>.dwtmp files
 ```
 
 ## Command line
@@ -81,64 +85,65 @@ echo "one more line" | durablewrite --append notes.txt
 printf 's3cret' | durablewrite --permissions 600 --no-overwrite token.txt
 ```
 
-Options: `--append`, `--json` (refuse invalid JSON), `--fsync {none,file,full}`,
-`--no-overwrite`, `--permissions OCTAL`, `--no-follow-symlinks`,
-`--attempts N`. Errors go to standard error with exit status 1, and TARGET is
-left as it was. If TARGET was replaced but its directory could not be fsynced,
-the exit status is 3. `python -m durablewrite` works too.
-
-On Windows, redirecting TARGET into the command (`durablewrite f < f`) is refused,
-because the shell keeps the redirected file open and that blocks the rename; pipe
-it instead (`type f | durablewrite f`). Concurrent `--append` runs on one file may
-lose each other's lines: each run is atomic, but they do not merge.
+Options: `--append`, `--json` (refuse anything but strict JSON), `--fsync
+{none,file,full}`, `--no-overwrite`, `--permissions OCTAL`,
+`--no-follow-symlinks`, `--attempts N`. Errors go to standard error with exit
+status 1, and TARGET is left as it was. If TARGET was replaced but its directory
+could not be fsynced, the exit status is 3. `python -m durablewrite` works too.
 
 ## Guarantees and limits
 
-The short version (details and sources in [GUIDE.md](GUIDE.md)):
+The short version; the [guide](https://github.com/JaviLianes8/durablewrite/blob/main/GUIDE.md)
+has the details and the sources.
 
-- **Atomic for readers and against process crashes** on local filesystems,
-  Windows and POSIX. Exercised by a seeded test that kills a writer process at
-  random moments and by a multi-process concurrent writer test.
-- **Durable against power loss** on Linux with `fsync="full"`. On macOS, `fsync`
-  does not flush the drive cache (`F_FULLFSYNC` is not issued). On Windows the
-  file data is flushed but a directory cannot be fsynced.
-- **Windows**: `os.replace` is `MoveFileExW`, not documented as atomic by
-  Microsoft; tested on NTFS, not guaranteed on FAT or network shares. An open
-  handle elsewhere blocks the rename; it is retried for about a second by
-  default, then `SharingViolationError` is raised. While a rename is in flight,
-  a concurrent `open()` of the target can fail with `PermissionError`; readers
-  that poll should retry. A read-only target cannot be replaced on Windows.
+- **Atomic for readers and against crashes of the writing process**, on local
+  filesystems. Tested by killing a writer right before and right after every
+  file system call it makes, on Windows and on Linux (where the calls are the
+  real libc calls, traced with `LD_PRELOAD`), and by random kills mid-write.
+- **Durable against power loss** with `fsync="full"`, as far as the operating
+  system documents it: on Linux the data and then the directory are fsynced; on
+  macOS `F_FULLFSYNC` is used so the drive flushes its own cache; on Windows the
+  data is flushed (`FlushFileBuffers`) and the rename uses
+  `MOVEFILE_WRITE_THROUGH`. No test can cut the power, so this rests on those
+  documented calls.
+- **Windows**: an open handle elsewhere blocks the rename; it is retried for
+  about a second by default, then `SharingViolationError` is raised. A
+  concurrent `open()` of the target can fail with `PermissionError` while a
+  rename is in flight. A read-only target cannot be replaced.
 - **After the rename**, a failing directory fsync raises `DirectorySyncError`:
   the new content is in place, but the rename may not survive a power loss.
-- Replacing a file creates a new one: other hard links keep the old content,
-  and extended attributes, ACLs and alternate data streams are not copied.
+- Replacing a file creates a new one: other hard links keep the old content, and
+  extended attributes, ACLs and alternate data streams are not copied.
 
 ## Why
 
 Writing a file in place can corrupt it: a crash, a full disk or a concurrent
-reader can catch it half-written. The safe pattern (temp file in the same
-directory, fsync, `os.replace`, fsync the directory) is well known but fiddly
-to get right on every platform.
+reader can catch it half-written. The safe sequence (temp file in the same
+directory, flush, rename, make the rename durable) is well known but fiddly on
+every platform.
 
-The options that existed each fall short:
+- `atomicwrites` did the sequence well, but its repository is archived and its
+  README marks it unmaintained; its last release, 1.4.1, dates from July 2022.
+  It creates every file as `0o600` and replaces a symlink instead of writing
+  through it.
+- `boltons.fileutils.atomic_save` fsyncs the file but not the directory, and
+  uses `ReplaceFileW` on Windows.
+- `atomicfile` (last release 2020) and `atomicwrite` (2015) are no longer
+  updated, and neither ships type information.
 
-- `atomicwrites`, the de-facto package, was **archived by its author in 2022**
-  and takes no fixes.
-- `boltons.fileutils.atomic_save` has **no Windows support**.
-- The `atomicfile` and `atomicwrite` packages on PyPI are **abandoned** (last
-  releases in 2020 and 2015) and neither is typed.
-- `safewrite` is minimal and obscure.
-
-`durablewrite` does the full sequence, keeps permissions, handles Windows
-sharing violations, documents exactly what each platform guarantees, and ships
-a command-line tool.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+`durablewrite` runs the full sequence on every platform, keeps permissions,
+retries Windows sharing violations, ships a command-line tool, and its test
+suite checks it against the recorded behaviour of `atomicwrites` and against
+traced system calls.
 
 ## Links
 
+- [Guide](https://github.com/JaviLianes8/durablewrite/blob/main/GUIDE.md)
+- [Changelog](https://github.com/JaviLianes8/durablewrite/blob/main/CHANGELOG.md)
 - Website: https://lianes8studio.com
 - GitHub: https://github.com/JaviLianes8
 - LinkedIn: https://www.linkedin.com/in/jlianes/
+
+## License
+
+MIT. See [LICENSE](https://github.com/JaviLianes8/durablewrite/blob/main/LICENSE).

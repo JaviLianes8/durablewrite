@@ -6,7 +6,49 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [0.2.0]
+## [1.0.0] - 2026-10-16
+
+The public API is now stable: the twelve names in `durablewrite.__all__`, their
+parameters, defaults and error types, the temp file naming scheme that
+`cleanup_temp_files` relies on, and the command line options and exit statuses
+follow Semantic Versioning from here on.
+
+### Changed
+
+- `fsync="full"` (the default) on Windows renames with `MoveFileExW` and
+  `MOVEFILE_WRITE_THROUGH`, so the rename itself is written to disk before the
+  call returns; `"file"` and `"none"` keep plain `os.replace`.
+- On macOS every flush uses `F_FULLFSYNC`, falling back to `fsync` where the
+  filesystem refuses it.
+- All arguments are checked when a writer is called, before any file is
+  touched, instead of when the `with` block is entered.
+- Error messages no longer repeat the refused value; the command line quotes at
+  most 40 characters of it.
+- `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`
+  (`IO[Any]` only for a mode that is not a literal).
+- `cleanup_temp_files` also removes read-only temp files on Windows.
+- The `dev` extra is replaced by `requirements-dev.txt`.
+
+### Fixed
+
+- `cleanup_temp_files(older_than=float("nan"))` removed every temp file,
+  including those of running writers; a NaN or infinite age, a non-finite `now`
+  and non-number ages now raise.
+- `RetryPolicy` accepted NaN and infinite delays, which made a blocked write
+  fail with an unrelated error and leave its temp file behind, and non-integer
+  attempts; these now raise `TypeError` or `ValueError`.
+- `bytes` paths, paths containing NUL, `permissions` outside `0..0o7777`,
+  unknown encodings and invalid `newline` values failed late or with unrelated
+  errors; they now raise `TypeError`, `ValueError` or `LookupError` up front.
+
+### Added
+
+- Ground truth in the test suite: kill-at-every-call tests on every platform, a
+  Linux system call tracer, 120 scenarios recorded from `atomicwrites` 1.4.1 on
+  Windows and Linux, and a manifest of the cited OS documentation.
+- Doctests for every public name, seeded fuzz tests and linear-time checks.
+
+## [0.2.0] - 2026-10-14
 
 ### Added
 
@@ -53,7 +95,7 @@ All notable changes to this project are documented here. The format follows
   private file) the temp file is `0600` while it is written.
 - On Windows, removal of a temp file that is briefly locked is retried.
 
-## [0.1.0]
+## [0.1.0] - 2026-10-11 (not published)
 
 ### Added
 
