@@ -138,7 +138,13 @@ def test_a_missing_directory_raises_file_not_found(tmp_path: Path) -> None:
 
 def test_a_long_file_name_does_not_overflow_the_temp_name(tmp_path: Path) -> None:
     target = tmp_path / ("n" * 240)
-    write_text_atomic(target, "x")
+    try:
+        write_text_atomic(target, "x")
+    except FileNotFoundError:
+        # Windows without long path support refuses the whole path, not the temp name.
+        assert os.name == "nt" and len(str(target)) >= 260
+        assert list(tmp_path.iterdir()) == []
+        return
     assert target.read_text(encoding="utf-8") == "x"
     assert leftovers(tmp_path, target.name) == []
 
