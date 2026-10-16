@@ -231,3 +231,17 @@ character name failed on the laptop, whose Windows has no long path support, for
   NaN cleanup ages accepted before and refused after; `bytes` paths refused.
 - Full suite on Elena's PC three times in a row: 333 passed, 66 skipped each time; green
   on the laptop and on WSL as root and as `nobody`.
+
+## Independent QA lenses (item 19)
+
+Each lens was a fresh reviewer that read the certification rules and CERT-1.0.md first,
+ran the code rather than only reading it, reported only to the author and posted nothing
+to GitHub. Lenses ran one at a time. Later rounds were bounded to confirming earlier
+findings plus one sweep of at most 40 mutations on the code changed since.
+
+| Lens | Round | Head | Verdict | Findings and outcome |
+| --- | --- | --- | --- | --- |
+| a. API and docs | 1 | bb5fd47 | FAIL | on/off options took any value by truthiness although the docs promised `TypeError` for a wrong type (`overwrite="no"` overwrote); `mode` and `fsync` of the wrong type gave `ValueError`; CLI usage errors repeated long values in full; the upgrade notes missed `permissions=True`, `bool` attempts and a non-callable `sleep`; the directory sync message repeated the path. Fixed in 2f4c22a. Information only: `atomic_write(p, "wb", encoding=...)` type-checks through the `str` fallback overload and fails at runtime |
+| a | 2 | 2f4c22a | FAIL | `durable` and `fsync_dir` were not checked when `fsync` was given; runtime CLI errors were not cut while the docs said every line was; 30 mutations, 8 survivors (option name in the message, cut boundary and marker, directory sync message, cause and errno). Fixed in 95effab with contracts |
+| a | 3 | 95effab | FAIL | 25 mutations, 3 survivors: the 120/121 boundary and the exit-3 warning (not cut, target dropped). Pinned in `tests/test_contract_cli.py` (6d57c4f) |
+| a | 4 | 6d57c4f | PASS | the five remaining mutants killed on Windows; external `mypy --strict` client of all twelve names clean; every README example and CLI line run on Windows and WSL; API dump identical to PyPI 0.2.0 apart from the documented changes |
