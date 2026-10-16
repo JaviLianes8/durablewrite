@@ -35,6 +35,17 @@ def _read(target: Path) -> bytes:
     return target.read_bytes()
 
 
+def _reclaim(folder: Path) -> int:
+    """Clean up temp files; on Windows a virus scanner may hold one for a moment."""
+    removed = len(cleanup_temp_files(folder, older_than=0))
+    for _ in range(50):
+        if os.name != "nt" or len(os.listdir(folder)) == 1:
+            break
+        time.sleep(0.05)
+        removed += len(cleanup_temp_files(folder, older_than=0))
+    return removed
+
+
 @pytest.mark.slow
 def test_killing_a_writer_never_leaves_a_partial_target(tmp_path: Path) -> None:
     rng = random.Random(SEED)
@@ -56,7 +67,7 @@ def test_killing_a_writer_never_leaves_a_partial_target(tmp_path: Path) -> None:
         except AssertionError as exc:
             raise AssertionError(f"torn target ({context}): {exc}") from None
         generations.add(generation)
-        leaked_temp_files += len(cleanup_temp_files(tmp_path, older_than=0))
+        leaked_temp_files += _reclaim(tmp_path)
         assert sorted(p.name for p in tmp_path.iterdir()) == ["state.bin"], context
     # The kills must have landed at different points, including mid-write.
     assert len(generations) > ITERATIONS // 4, sorted(generations)
