@@ -1,0 +1,1087 @@
+{
+ "library": "atomicwrites 1.4.1",
+ "outcomes": {
+  "absent-w-exclusive-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-exclusive-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-exclusive-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-w-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "absent-wb-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "missing",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-ascii-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-empty-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-unicode-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-w-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-ascii-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-empty-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-unicode-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "dangling-wb-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-ascii-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-empty-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-unicode-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-ascii-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-empty-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-unicode-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-w-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-ascii-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-empty-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-unicode-ok": {
+   "content": null,
+   "error": "FileExistsError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-exclusive-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-ascii-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-ascii-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-empty-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-empty-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-unicode-ok": {
+   "content": null,
+   "error": "IsADirectoryError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "directory-wb-overwrite-unicode-raise": {
+   "content": null,
+   "error": "RuntimeError",
+   "kind": "directory",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-ascii-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-empty-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-unicode-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-exclusive-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-w-overwrite-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-ascii-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-empty-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-unicode-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-exclusive-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": null
+  },
+  "file-wb-overwrite-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 420,
+   "ran": true,
+   "real": null
+  },
+  "symlink-w-exclusive-ascii-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-exclusive-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-exclusive-empty-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-exclusive-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-exclusive-unicode-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-exclusive-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-w-overwrite-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-ascii-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-empty-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-unicode-ok": {
+   "content": "OLD",
+   "error": "FileExistsError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-exclusive-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-ascii-ok": {
+   "content": "line one\nline two\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-ascii-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-empty-ok": {
+   "content": "",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-empty-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-unicode-ok": {
+   "content": "caf\u00e9 \u2603\r\n",
+   "error": null,
+   "kind": "file",
+   "leftovers": 0,
+   "mode": 384,
+   "ran": true,
+   "real": "OLD"
+  },
+  "symlink-wb-overwrite-unicode-raise": {
+   "content": "OLD",
+   "error": "RuntimeError",
+   "kind": "symlink",
+   "leftovers": 0,
+   "mode": null,
+   "ran": true,
+   "real": "OLD"
+  }
+ },
+ "python": "3.14.4",
+ "system": "Linux 6.6.87.2-microsoft-standard-WSL2"
+}
