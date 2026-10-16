@@ -98,8 +98,9 @@ path is pinned by `tests/test_contract_platform.py`.
 
 ### Windows
 
-- `os.fsync` calls the C runtime's `_commit`, which flushes the file with
-  `FlushFileBuffers` [1][7][9].
+- `os.fsync` calls the C runtime's `_commit` [1][9], which forces the file to
+  disk; on Windows 11 a hook on the C runtime showed `_commit` calling
+  `FlushFileBuffers` [7] (observed, not documented on the `_commit` page).
 - With `fsync="full"`, the rename is `MoveFileExW` with
   `MOVEFILE_WRITE_THROUGH` (plus `MOVEFILE_REPLACE_EXISTING` unless
   `overwrite=False`) [6], as `atomicwrites` does. With `"file"` or `"none"` it is
@@ -132,7 +133,8 @@ path is pinned by `tests/test_contract_platform.py`.
 ### Why not `ReplaceFileW`
 
 `ReplaceFileW` [11] keeps the replaced file's ACL, attributes and creation time,
-but it requires the target to exist and it can fail half way: Microsoft lists a
+but it is built around an existing file to replace (in our tests on Windows 11
+it failed when the target was missing) and it can fail half way: Microsoft lists a
 result, `ERROR_UNABLE_TO_MOVE_REPLACEMENT_2`, in which the replaced file is left
 under another name. A primitive whose failure mode removes the target conflicts
 with the core promise, so `durablewrite` uses `MoveFileExW`.

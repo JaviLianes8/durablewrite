@@ -97,7 +97,8 @@ The short version; the [guide](https://github.com/JaviLianes8/durablewrite/blob/
 has the details and the sources.
 
 - **Atomic for readers and against crashes of the writing process**, on local
-  filesystems. Tested by killing a writer right before and right after every
+  filesystems: POSIX documents `rename` as atomic; Microsoft does not say so for
+  `MoveFileExW`, and on Windows this was observed on NTFS in our tests. Tested by killing a writer right before and right after every
   file system call it makes, on Windows and on Linux (where the calls are the
   real libc calls, traced with `LD_PRELOAD`), and by random kills mid-write.
 - **Durable against power loss** with `fsync="full"`, as far as the operating

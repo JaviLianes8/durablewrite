@@ -53,12 +53,16 @@ def _open(fd: int, plan: Plan) -> IO[Any]:
 @contextmanager
 def run(plan: Plan) -> Iterator[IO[Any]]:
     """Yield the temp file handle and publish it if the block exits normally."""
+    # Pinned to an absolute path now: a chdir while the block runs must not move the
+    # rename away from the directory that holds the temp file and gets fsynced.
     target = resolve_target(plan.path, plan.follow_symlinks)
+    if not os.path.isabs(target):
+        target = os.path.join(os.getcwd(), target)
     if os.path.isdir(target) and not os.path.islink(target):
         raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
     if not plan.overwrite and os.path.lexists(target):
         raise FileExistsError(errno.EEXIST, "target already exists", target)
-    directory = os.path.dirname(os.path.abspath(target))
+    directory = os.path.dirname(target)
     existing = existing_stat(target, plan.follow_symlinks)
     private = plan.permissions is not None or (plan.preserve_mode and existing is not None)
     tmp: str | None = None
