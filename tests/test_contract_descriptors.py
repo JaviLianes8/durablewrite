@@ -109,3 +109,18 @@ def test_preserve_mode_keeps_setgid_and_sticky_bits(tmp_path: Path) -> None:
         pytest.skip("this filesystem drops special bits")
     write_text_atomic(target, "new")
     assert stat.S_IMODE(target.stat().st_mode) == 0o3750
+
+
+def test_an_interrupt_before_the_descriptor_is_wrapped_closes_it_once(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    closed = _spy_closes(monkeypatch)
+
+    def interrupted(*args: object, **kwargs: object) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(os, "fdopen", interrupted)
+    with pytest.raises(KeyboardInterrupt), atomic_write(tmp_path / "t"):
+        pass
+    assert len(closed) == 1
+    assert list(tmp_path.iterdir()) == []
