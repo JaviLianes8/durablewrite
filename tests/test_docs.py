@@ -12,13 +12,13 @@ import re
 from pathlib import Path
 
 import pytest
-from conftest import SRC_DIR, TESTS_DIR
+from conftest import TESTS_DIR
 
 import durablewrite
 
 MODULES = sorted(
     f"durablewrite.{p.stem}"
-    for p in (SRC_DIR / "durablewrite").glob("_*.py")
+    for p in Path(durablewrite.__file__).parent.glob("_*.py")
     if p.stem != "__main__"
 )
 README = (TESTS_DIR.parent / "README.md").read_text(encoding="utf-8")
