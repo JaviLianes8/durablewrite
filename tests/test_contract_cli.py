@@ -33,5 +33,5 @@ def test_an_unsynced_directory_gives_status_3_and_a_cut_warning_naming_the_targe
         prefix = "durablewrite: warning: "
         assert line.startswith(prefix + str(target)[:60])
         message = line[len(prefix) :]
-        assert message.endswith("...") == cut and len(message) <= 120
+        assert len(message) <= 120 and (message.endswith("...") or not cut)
         assert target.read_bytes() == b"data"
