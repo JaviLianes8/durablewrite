@@ -45,9 +45,9 @@ with atomic_write("image.png", "wb") as f:
 | `follow_symlinks` | `True` | write through a symlink and keep it, or replace the link itself |
 | `retry` | `DEFAULT_RETRY` | bounded retry while Windows reports the target locked |
 
-Arguments are checked when the writer is called, before any file is touched:
-a wrong type raises `TypeError`, a bad value `ValueError`, an unknown encoding
-`LookupError`. New files get `0o666` minus your umask, exactly like `open()`.
+Arguments are checked when the writer is called, before any file is touched: a
+wrong type raises `TypeError` (on/off options take only `True` or `False`), a bad
+value `ValueError`, an unknown encoding `LookupError`. New files get `0o666` minus your umask, exactly like `open()`.
 When the final mode comes from `permissions` or from the replaced file, the temp
 file is created as `0o600`, so a secret is never readable by others while it is
 being written.

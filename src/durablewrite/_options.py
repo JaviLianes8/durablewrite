@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Literal
 
-from ._check import check_real
+from ._check import check_flag, check_real
 
 FsyncLevel = Literal["none", "file", "full"]
 """How much to flush to stable storage before a write returns.
@@ -40,8 +40,10 @@ _LEVELS: dict[str, tuple[bool, bool]] = {
 def resolve_fsync(fsync: FsyncLevel | None, durable: bool, fsync_dir: bool) -> tuple[bool, bool]:
     """Return ``(sync_file, sync_dir)``; an explicit ``fsync`` wins over the flags."""
     if fsync is None:
-        return durable, fsync_dir
-    if not isinstance(fsync, str) or fsync not in _LEVELS:
+        return check_flag("durable", durable), check_flag("fsync_dir", fsync_dir)
+    if not isinstance(fsync, str):
+        raise TypeError("fsync must be a str")
+    if fsync not in _LEVELS:
         raise ValueError("fsync must be 'none', 'file' or 'full'")
     return _LEVELS[fsync]
 

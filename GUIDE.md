@@ -186,7 +186,7 @@ file look stale, so it is refused.
 
 | Error | When |
 | --- | --- |
-| `TypeError` | a `bytes` path or another argument of the wrong type |
+| `TypeError` | a `bytes` path, an on/off option that is not `True` or `False`, or another argument of the wrong type |
 | `ValueError` | a bad `mode`, `fsync`, `newline`, `permissions`, retry setting or age; an empty path, a NUL in it, or one ending with a separator |
 | `LookupError` | an unknown `encoding` |
 | `IsADirectoryError` | the target is a directory |
@@ -234,7 +234,7 @@ file can lose one run's data, because each starts from the content it read.
 
 ## Upgrading from 0.2
 
-Code that worked with 0.2.0 keeps working, with these differences:
+Code that passes the documented argument types keeps working; the differences:
 
 - `fsync="full"` now uses `MOVEFILE_WRITE_THROUGH` on Windows and `F_FULLFSYNC`
   on macOS.
@@ -242,12 +242,18 @@ Code that worked with 0.2.0 keeps working, with these differences:
   block is entered, and more of them are checked: `bytes` paths, paths with a
   NUL, `permissions` outside `0..0o7777`, unknown encodings, invalid `newline`
   values, a `retry` that is not a `RetryPolicy`.
-- `RetryPolicy` refuses non-integer attempts and delays or multipliers that are
-  NaN, infinite or of the wrong type; `cleanup_temp_files` refuses a NaN or
+- On/off options (`overwrite`, `durable`, `fsync_dir`, `preserve_mode`,
+  `preserve_owner`, `follow_symlinks`) must be `True` or `False`: 0.2.0 took any
+  value by truthiness, so `overwrite="no"` overwrote. A `mode` or `fsync` that is
+  not a string, and `permissions=True`, raise `TypeError`.
+- `RetryPolicy` refuses attempts that are not an `int` (a `bool` included), a
+  `sleep` that is not callable, and delays or multipliers that are NaN, infinite
+  or of the wrong type; `cleanup_temp_files` refuses a NaN or
   infinite age and a non-finite `now`.
 - `cleanup_temp_files` removes read-only temp files on Windows.
-- Error messages no longer repeat the refused value (the command line quotes at
-  most 40 characters of it).
+- Error messages no longer repeat the refused value. The command line quotes at
+  most 40 characters of the values it checks itself and cuts every error line to
+  120 characters.
 - `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`.
 - The `dev` extra is gone; contributors use `requirements-dev.txt`.
 

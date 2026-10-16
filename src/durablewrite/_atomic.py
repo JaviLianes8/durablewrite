@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import AbstractContextManager
 from typing import IO, Any, Literal, overload
 
-from ._check import check_permissions, check_target, check_text_options
+from ._check import check_flag, check_permissions, check_target, check_text_options
 from ._fs import StrPath
 from ._options import DEFAULT_RETRY, FsyncLevel, RetryPolicy, resolve_fsync
 from ._write import Plan, run
@@ -26,6 +26,8 @@ def build_plan(
     retry: RetryPolicy,
 ) -> Plan:
     """Check every argument of a write and return them as a :class:`Plan`."""
+    if not isinstance(mode, str):
+        raise TypeError("mode must be a str")
     if mode not in ("w", "wb"):
         raise ValueError("mode must be 'w' or 'wb'")
     binary = mode == "wb"
@@ -37,13 +39,13 @@ def build_plan(
         binary=binary,
         encoding=encoding,
         newline=newline,
-        sync_file=bool(sync[0]),
-        sync_dir=bool(sync[1]),
-        overwrite=bool(overwrite),
-        preserve_mode=bool(preserve_mode),
+        sync_file=sync[0],
+        sync_dir=sync[1],
+        overwrite=check_flag("overwrite", overwrite),
+        preserve_mode=check_flag("preserve_mode", preserve_mode),
         permissions=check_permissions(permissions),
-        preserve_owner=bool(preserve_owner),
-        follow_symlinks=bool(follow_symlinks),
+        preserve_owner=check_flag("preserve_owner", preserve_owner),
+        follow_symlinks=check_flag("follow_symlinks", follow_symlinks),
         retry=retry,
     )
 
@@ -150,7 +152,8 @@ def atomic_write(
         retry: How long to retry a rename blocked by a Windows lock.
 
     Raises:
-        TypeError: ``path`` is bytes, or another argument has the wrong type.
+        TypeError: ``path`` is bytes, an on/off option is not a bool, or another
+            argument has the wrong type.
         ValueError: A bad ``mode``, ``fsync``, ``newline`` or ``permissions``,
             or a ``path`` that is empty or ends with a separator.
         LookupError: An unknown ``encoding``.

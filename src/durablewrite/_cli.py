@@ -40,6 +40,8 @@ exit status: 0 on success; 1 on any error, with the target left as it was;
 class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
+        if len(message) > 120:  # argparse repeats unknown options and choices in full
+            message = message[:117] + "..."
         self.exit(1, f"{self.prog}: error: {message}\n")
 
 

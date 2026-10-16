@@ -90,5 +90,7 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
             fsync_directory(directory)
         except OSError as exc:
             raise DirectorySyncError(
-                exc.errno, f"file replaced, but its directory was not synced: {exc}", directory
+                exc.errno,
+                f"file replaced, but its directory was not synced: {exc.strerror}",
+                directory,
             ) from exc

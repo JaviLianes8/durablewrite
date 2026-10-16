@@ -23,7 +23,12 @@ follow Semantic Versioning from here on.
 - All arguments are checked when a writer is called, before any file is
   touched, instead of when the `with` block is entered.
 - Error messages no longer repeat the refused value; the command line quotes at
-  most 40 characters of it.
+  most 40 characters of the values it checks and cuts error lines to 120
+  characters.
+- On/off options (`overwrite`, `durable`, `fsync_dir`, `preserve_mode`,
+  `preserve_owner`, `follow_symlinks`) accept only `True` or `False`, and a `mode`
+  or `fsync` that is not a string raises `TypeError`: before, any value was taken
+  by truthiness, so `overwrite="no"` overwrote the file.
 - `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`
   (`IO[Any]` only for a mode that is not a literal).
 - `cleanup_temp_files` also removes read-only temp files on Windows.
@@ -35,11 +40,12 @@ follow Semantic Versioning from here on.
   including those of running writers; a NaN or infinite age, a non-finite `now`
   and non-number ages now raise.
 - `RetryPolicy` accepted NaN and infinite delays, which made a blocked write
-  fail with an unrelated error and leave its temp file behind, and non-integer
-  attempts; these now raise `TypeError` or `ValueError`.
+  fail with an unrelated error and leave its temp file behind, non-integer or
+  `bool` attempts and a `sleep` that is not callable; these now raise
+  `TypeError` or `ValueError`.
 - `bytes` paths, paths containing NUL, `permissions` outside `0..0o7777`,
-  unknown encodings and invalid `newline` values failed late or with unrelated
-  errors; they now raise `TypeError`, `ValueError` or `LookupError` up front.
+  `permissions=True`, unknown encodings and invalid `newline` values failed late
+  or with unrelated errors; they now raise `TypeError`, `ValueError` or `LookupError` up front.
 
 ### Added
 

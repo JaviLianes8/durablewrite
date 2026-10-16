@@ -140,3 +140,18 @@ def test_cli_append_fails_when_the_current_content_cannot_be_read(
     finally:
         target.chmod(0o600)
     assert target.read_bytes() == b"precious"
+
+
+def test_cli_error_lines_stay_short_whatever_the_input(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    for argv in (
+        ["--fsync", "x" * 300, "t"],
+        ["--" + "y" * 300, "t"],
+        ["--attempts", "z" * 300, "t"],
+    ):
+        with pytest.raises(SystemExit) as info:
+            main(argv)
+        assert info.value.code == 1
+        error = capsys.readouterr().err.splitlines()[-1]
+        assert error.startswith("durablewrite: error:") and len(error) < 160

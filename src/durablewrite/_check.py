@@ -23,6 +23,13 @@ def check_path(path: Any) -> str:
     return text
 
 
+def check_flag(name: str, value: object) -> bool:
+    """On/off options take only True or False: a truthy string must not mean yes."""
+    if not isinstance(value, bool):
+        raise TypeError(f"{name} must be True or False")
+    return value
+
+
 def check_target(path: Any) -> str:
     """Like :func:`check_path`, and the path must name a file."""
     text = check_path(path)
