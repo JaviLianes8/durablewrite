@@ -35,6 +35,8 @@ def check_target(path: Any) -> str:
     text = check_path(path)
     if not text:
         raise ValueError("path must not be empty")
+    if os.name == "nt" and ":" in os.path.basename(os.path.splitdrive(text)[1]):
+        raise ValueError("path must not name an alternate data stream")
     if text.endswith(os.sep) or (os.altsep is not None and text.endswith(os.altsep)):
         raise ValueError("path must name a file, not end with a separator")
     return text
@@ -63,16 +65,20 @@ def check_text_options(binary: bool, encoding: object, newline: object) -> None:
         if not isinstance(encoding, str):
             raise TypeError("encoding must be a str")
         try:
-            codecs.lookup(encoding)
+            info = codecs.lookup(encoding)
         except LookupError:
             raise LookupError("unknown encoding") from None
+        if not getattr(info, "_is_text_encoding", True):
+            raise LookupError("not a text encoding")
     if newline is not None and not isinstance(newline, str):
         raise TypeError("newline must be a str or None")
     if newline not in _NEWLINES:
         raise ValueError("newline must be None, '', '\\n', '\\r' or '\\r\\n'")
 
 
-def check_real(name: str, value: object, *, minimum: float | None = 0.0) -> float:
+def check_real(
+    name: str, value: object, *, minimum: float | None = 0.0, maximum: float = math.inf
+) -> float:
     """Return ``value`` as a finite float, at least ``minimum`` unless that is None."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"{name} must be a real number")
@@ -82,6 +88,8 @@ def check_real(name: str, value: object, *, minimum: float | None = 0.0) -> floa
         raise ValueError(f"{name} must be finite") from None
     if not math.isfinite(number):
         raise ValueError(f"{name} must be finite")
+    if number > maximum:
+        raise ValueError(f"{name} must be at most {maximum:g}")
     if minimum is not None and number < minimum:
         floor = "not be negative" if minimum == 0 else f"be at least {minimum:g}"
         raise ValueError(f"{name} must {floor}")

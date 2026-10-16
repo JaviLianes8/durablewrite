@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import errno
+import io
 import os
+import stat
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from typing import IO, Any
 
@@ -41,13 +43,27 @@ class Plan:
 
 
 def _open(fd: int, plan: Plan) -> IO[Any]:
+    """Wrap ``fd``; the raw file owns it from the first call, so it is closed once."""
+    raw = os.fdopen(fd, "wb")
+    if plan.binary:
+        return raw
     try:
-        if plan.binary:
-            return os.fdopen(fd, "wb")
-        return os.fdopen(fd, "w", encoding=plan.encoding or "utf-8", newline=plan.newline)
+        return io.TextIOWrapper(raw, encoding=plan.encoding or "utf-8", newline=plan.newline)
     except BaseException:
-        os.close(fd)
+        raw.close()
         raise
+
+
+def _refuse_special(target: str, follow_symlinks: bool) -> None:
+    """FIFOs, devices and sockets are never swapped for a regular file."""
+    try:
+        info = os.stat(target) if follow_symlinks else os.lstat(target)
+    except OSError:
+        return
+    if stat.S_ISDIR(info.st_mode):
+        raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
+    if not (stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode)):
+        raise OSError(errno.EINVAL, "target is not a regular file", target)
 
 
 @contextmanager
@@ -58,18 +74,19 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
     target = resolve_target(plan.path, plan.follow_symlinks)
     if not os.path.isabs(target):
         target = os.path.join(os.getcwd(), target)
-    if os.path.isdir(target) and not os.path.islink(target):
-        raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
+    _refuse_special(target, plan.follow_symlinks)
     if not plan.overwrite and os.path.lexists(target):
         raise FileExistsError(errno.EEXIST, "target already exists", target)
     directory = os.path.dirname(target)
     existing = existing_stat(target, plan.follow_symlinks)
     private = plan.permissions is not None or (plan.preserve_mode and existing is not None)
     tmp: str | None = None
+    fd = -1
     published = False
     try:
         fd, tmp = create_temp(directory, os.path.basename(target), private)
-        with _open(fd, plan) as f:
+        handle, fd = _open(fd, plan), -1
+        with handle as f:
             yield f
             f.flush()
             apply_metadata(
@@ -87,6 +104,9 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
         )
         published = True
     finally:
+        if fd >= 0:  # interrupted between creating the temp file and wrapping it
+            with suppress(OSError):
+                os.close(fd)
         if tmp is not None and not published:
             remove_temp(tmp, plan.retry)
     if plan.sync_dir:

@@ -43,6 +43,22 @@ follow Semantic Versioning from here on.
   fail with an unrelated error and leave its temp file behind, non-integer or
   `bool` attempts and a `sleep` that is not callable; these now raise
   `TypeError` or `ValueError`.
+- A FIFO, device or socket target was silently replaced by a regular file
+  (`durablewrite /dev/null` as root replaced the device; `--append` on a FIFO
+  hung); it now raises `OSError` with `EINVAL`.
+- Permission bits were set on the temp file by name; on POSIX they now go
+  through the descriptor (`fchmod`), so a temp name swapped for a symlink cannot
+  redirect them.
+- A text wrapper that failed to build closed the file descriptor twice and hid
+  its own error behind `EBADF`; codecs that are not text encodings (`hex`) are now
+  refused up front with `LookupError`.
+- An interrupt between creating the temp file and wrapping it left the
+  descriptor open, so on Windows the temp file could not be removed.
+- `--json` refused valid JSON with integers longer than 4300 digits.
+- On Windows a name with `:` wrote to an alternate data stream and left an empty
+  file behind; it now raises `ValueError`.
+- `RetryPolicy` accepted delays so long that `time.sleep` overflowed; delays are
+  now limited to one day.
 - `bytes` paths, paths containing NUL, `permissions` outside `0..0o7777`,
   `permissions=True`, unknown encodings and invalid `newline` values failed late
   or with unrelated errors; they now raise `TypeError`, `ValueError` or `LookupError` up front.

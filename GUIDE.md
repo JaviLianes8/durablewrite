@@ -13,7 +13,9 @@ For `atomic_write(path)` and every helper built on it:
 2. **Resolve the target.** If `path` is a symlink and `follow_symlinks=True`
    (the default), the file it points to becomes the target, so the link keeps
    working. With `follow_symlinks=False` the link itself is replaced by a
-   regular file. An existing directory is rejected with `IsADirectoryError`, and
+   regular file. An existing directory is rejected with `IsADirectoryError`, a
+   FIFO, device or socket with `OSError` (`EINVAL`) so it is never swapped for a
+   regular file, and
    with `overwrite=False` an existing name is rejected with `FileExistsError`,
    both before the block runs.
 3. **Create a temp file in the target's own directory**, named
@@ -29,7 +31,9 @@ For `atomic_write(path)` and every helper built on it:
 4. **Write** your data into it.
 5. **Set metadata.** With `preserve_owner=True` (POSIX) the uid and gid of the
    old file are copied first, then the permission bits: either `permissions` or,
-   with `preserve_mode=True` (the default), the bits of the old file.
+   with `preserve_mode=True` (the default), the bits of the old file. On POSIX
+   both go through the open descriptor (`fchown`, `fchmod`), so a temp name
+   swapped for a symlink by someone else cannot redirect them.
 6. **Flush the temp file to disk** (`fsync="file"` or `"full"`): `fsync` on
    Linux, `F_FULLFSYNC` on macOS, `FlushFileBuffers` on Windows. This must come
    before the rename, or the new name can reach the disk before the data it
@@ -118,7 +122,9 @@ path is pinned by `tests/test_contract_platform.py`.
   are retried with bounded backoff (`RetryPolicy`, about 1.1 seconds by default).
   A read-only target is never retried. Several processes replacing one file
   while others read it can keep it locked for longer than that on a slow or busy
-  machine; give such writers a larger `RetryPolicy`. When the budget runs out,
+  machine, and so can many writers of one file on their own (an adversarial run
+  of 16 threads saw a few blocked renames in 3,200); give such writers a larger
+  `RetryPolicy`. When the budget runs out,
   `SharingViolationError` is raised and the target is untouched
   (`tests/test_sharing.py`). A directory ACL that denies the rename produces the
   same error code and ends the same way.
@@ -189,9 +195,10 @@ file look stale, so it is refused.
 | Error | When |
 | --- | --- |
 | `TypeError` | a `bytes` path, an on/off option that is not `True` or `False`, or another argument of the wrong type |
-| `ValueError` | a bad `mode`, `fsync`, `newline`, `permissions`, retry setting or age; an empty path, a NUL in it, or one ending with a separator |
-| `LookupError` | an unknown `encoding` |
+| `ValueError` | a bad `mode`, `fsync`, `newline`, `permissions`, retry setting (delays from 0 to one day) or age; an empty path, a NUL in it, one ending with a separator, or on Windows a name with `:` (an alternate data stream) |
+| `LookupError` | an unknown `encoding`, or a codec that is not a text encoding (`hex`) |
 | `IsADirectoryError` | the target is a directory |
+| `OSError` (`EINVAL`) | the target is a FIFO, device or socket |
 | `FileExistsError` | `overwrite=False` and the name exists |
 | `SharingViolationError` | Windows kept the rename blocked for the whole retry budget (a `PermissionError`) |
 | `DirectorySyncError` | the file was replaced, but the directory fsync failed (POSIX, `"full"`) |
@@ -243,7 +250,13 @@ Code that passes the documented argument types keeps working; the differences:
 - Arguments are checked when the writer is called rather than when the `with`
   block is entered, and more of them are checked: `bytes` paths, paths with a
   NUL, `permissions` outside `0..0o7777`, unknown encodings, invalid `newline`
-  values, a `retry` that is not a `RetryPolicy`.
+  values, codecs that are not text encodings, a `retry` that is not a
+  `RetryPolicy`, and on Windows alternate data stream names.
+- A FIFO, device or socket target raises `OSError` (`EINVAL`); 0.2.0 replaced it
+  with a regular file (as root, `durablewrite /dev/null` replaced the device).
+- `RetryPolicy` delays longer than one day are refused.
+- `--json` checks numbers without converting them, so integers longer than 4300
+  digits are accepted.
 - On/off options (`overwrite`, `durable`, `fsync_dir`, `preserve_mode`,
   `preserve_owner`, `follow_symlinks`) must be `True` or `False`: 0.2.0 took any
   value by truthiness, so `overwrite="no"` overwrote. A `mode` or `fsync` that is

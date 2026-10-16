@@ -120,7 +120,9 @@ def _reject_constant(name: str) -> None:
 
 def _check_json(payload: bytes) -> None:
     try:
-        json.loads(payload.decode("utf-8"), parse_constant=_reject_constant)
+        # Numbers are only checked, not converted: int() refuses over 4300 digits.
+        text = payload.decode("utf-8")
+        json.loads(text, parse_constant=_reject_constant, parse_int=len, parse_float=len)
     except (ValueError, RecursionError) as exc:
         raise ValueError(f"standard input is not valid UTF-8 JSON ({exc})") from exc
 

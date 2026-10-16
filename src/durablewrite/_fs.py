@@ -96,10 +96,15 @@ def apply_metadata(
     if sys.platform != "win32" and preserve_owner and existing is not None:
         # chown before chmod: chown clears setuid/setgid bits on Linux.
         os.fchown(fd, existing.st_uid, existing.st_gid)
-    if permissions is not None:
-        os.chmod(tmp, permissions)
-    elif preserve_mode and existing is not None and os.name != "nt":
-        os.chmod(tmp, stat.S_IMODE(existing.st_mode))
+    mode = permissions
+    if mode is None and preserve_mode and existing is not None and os.name != "nt":
+        mode = stat.S_IMODE(existing.st_mode)
+    if mode is None:
+        return
+    if sys.platform == "win32":
+        os.chmod(tmp, mode)
+    else:  # by descriptor: a name swapped for a symlink must not redirect the chmod
+        os.fchmod(fd, mode)
 
 
 def sync_fd(fd: int) -> None:

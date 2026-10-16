@@ -9,6 +9,9 @@ from typing import Literal
 
 from ._check import check_flag, check_real
 
+# One day: longer waits overflow time.sleep on some platforms and make no sense here.
+MAX_DELAY = 86400.0
+
 FsyncLevel = Literal["none", "file", "full"]
 """How much to flush to stable storage before a write returns.
 
@@ -80,8 +83,8 @@ class RetryPolicy:
             raise TypeError("max_attempts must be an int")
         if attempts < 1:
             raise ValueError("max_attempts must be at least 1")
-        check_real("initial_delay", self.initial_delay)
-        check_real("max_delay", self.max_delay)
+        check_real("initial_delay", self.initial_delay, maximum=MAX_DELAY)
+        check_real("max_delay", self.max_delay, maximum=MAX_DELAY)
         check_real("multiplier", self.multiplier, minimum=1.0)
         if not callable(self.sleep):
             raise TypeError("sleep must be callable")
