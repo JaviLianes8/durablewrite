@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno
 import io
 import os
 import stat
@@ -11,7 +12,14 @@ from pathlib import Path
 import pytest
 from conftest import can_symlink, is_root, posix_only
 
-from durablewrite import RetryPolicy, _write, atomic_write, cleanup_temp_files, write_text_atomic
+from durablewrite import (
+    DirectorySyncError,
+    RetryPolicy,
+    _write,
+    atomic_write,
+    cleanup_temp_files,
+    write_text_atomic,
+)
 from durablewrite._cli import main
 
 
@@ -142,16 +150,48 @@ def test_cli_append_fails_when_the_current_content_cannot_be_read(
     assert target.read_bytes() == b"precious"
 
 
-def test_cli_error_lines_stay_short_whatever_the_input(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+def _last_error(capsys: pytest.CaptureFixture[str]) -> str:
+    line = capsys.readouterr().err.splitlines()[-1]
+    assert line.startswith("durablewrite: error: ")
+    return line[len("durablewrite: error: ") :]
+
+
+def test_cli_error_messages_are_cut_to_120_characters(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    for argv in (
-        ["--fsync", "x" * 300, "t"],
-        ["--" + "y" * 300, "t"],
-        ["--attempts", "z" * 300, "t"],
-    ):
+    for argv in (["--fsync", "x" * 300, "t"], ["--" + "y" * 300, "t"]):
         with pytest.raises(SystemExit) as info:
             main(argv)
         assert info.value.code == 1
-        error = capsys.readouterr().err.splitlines()[-1]
-        assert error.startswith("durablewrite: error:") and len(error) < 160
+        message = _last_error(capsys)
+        assert len(message) == 120 and message.endswith("...")
+    monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(b"x")))
+    assert main([str(tmp_path / ("m" * 150) / "t")]) == 1
+    message = _last_error(capsys)
+    assert len(message) == 120 and message.endswith("...")
+    with pytest.raises(SystemExit):
+        main(["--fsync", "nope", str(tmp_path / "t")])
+    assert not _last_error(capsys).endswith("...")
+
+
+def test_a_directory_sync_error_names_the_directory_once_and_keeps_the_errno(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(directory: str) -> None:
+        raise PermissionError(errno.EACCES, "Permission denied", directory)
+
+    monkeypatch.setattr(_write, "fsync_directory", refuse)
+    with pytest.raises(DirectorySyncError) as info:
+        write_text_atomic(tmp_path / "t", "x")
+    error = info.value
+    assert error.errno == errno.EACCES and error.filename == str(tmp_path)
+    assert str(error).count(tmp_path.name) == 1 and "Permission denied" in str(error)
+    assert isinstance(error.__cause__, PermissionError)
+    assert (tmp_path / "t").read_text(encoding="utf-8") == "x"
+
+
+@pytest.mark.parametrize("name", ["durable", "fsync_dir", "overwrite", "follow_symlinks"])
+def test_flag_errors_name_the_option_even_when_fsync_is_given(tmp_path: Path, name: str) -> None:
+    with pytest.raises(TypeError, match=name):
+        write_text_atomic(tmp_path / "t", "x", fsync="full", **{name: "yes"})  # type: ignore[arg-type]
+    assert list(tmp_path.iterdir()) == []

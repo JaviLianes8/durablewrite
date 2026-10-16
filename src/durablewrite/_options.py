@@ -39,8 +39,9 @@ _LEVELS: dict[str, tuple[bool, bool]] = {
 
 def resolve_fsync(fsync: FsyncLevel | None, durable: bool, fsync_dir: bool) -> tuple[bool, bool]:
     """Return ``(sync_file, sync_dir)``; an explicit ``fsync`` wins over the flags."""
+    flags = check_flag("durable", durable), check_flag("fsync_dir", fsync_dir)
     if fsync is None:
-        return check_flag("durable", durable), check_flag("fsync_dir", fsync_dir)
+        return flags
     if not isinstance(fsync, str):
         raise TypeError("fsync must be a str")
     if fsync not in _LEVELS:

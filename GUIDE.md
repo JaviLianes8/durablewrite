@@ -252,8 +252,9 @@ Code that passes the documented argument types keeps working; the differences:
   infinite age and a non-finite `now`.
 - `cleanup_temp_files` removes read-only temp files on Windows.
 - Error messages no longer repeat the refused value. The command line quotes at
-  most 40 characters of the values it checks itself and cuts every error line to
-  120 characters.
+  most 40 characters of the values it checks itself, and every error or warning
+  message it prints after its `durablewrite: error:` prefix is cut to 120
+  characters.
 - `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`.
 - The `dev` extra is gone; contributors use `requirements-dev.txt`.
 

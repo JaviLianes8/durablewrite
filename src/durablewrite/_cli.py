@@ -40,9 +40,12 @@ exit status: 0 on success; 1 on any error, with the target left as it was;
 class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
-        if len(message) > 120:  # argparse repeats unknown options and choices in full
-            message = message[:117] + "..."
-        self.exit(1, f"{self.prog}: error: {message}\n")
+        self.exit(1, f"{self.prog}: error: {_cut(message)}\n")
+
+
+def _cut(message: str) -> str:
+    """Keep an error message to 120 characters: argparse and long paths repeat input."""
+    return message if len(message) <= 120 else message[:117] + "..."
 
 
 def _short(text: str) -> str:
@@ -132,8 +135,8 @@ def _refuse_redirected_target(source: IO[bytes], target: str) -> None:
         return
     if stat.S_ISREG(src.st_mode) and os.path.samestat(src, dst):
         raise ValueError(
-            "on Windows TARGET cannot also be redirected into standard input: the shell "
-            "keeps it open, which blocks the rename. Pipe it instead: type FILE | durablewrite FILE"
+            "TARGET is also standard input and Windows keeps it open. "
+            "Pipe it instead: type FILE | durablewrite FILE"
         )
 
 
@@ -173,10 +176,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         _write(args, sys.stdin.buffer)
     except DirectorySyncError as exc:
-        print(f"durablewrite: warning: {args.target}: {exc}", file=sys.stderr)
+        print(f"durablewrite: warning: {_cut(f'{args.target}: {exc}')}", file=sys.stderr)
         return 3
     except (OSError, ValueError) as exc:
-        print(f"durablewrite: error: {exc}", file=sys.stderr)
+        print(f"durablewrite: error: {_cut(str(exc))}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         print("durablewrite: interrupted, target left unchanged", file=sys.stderr)

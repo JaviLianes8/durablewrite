@@ -23,8 +23,8 @@ follow Semantic Versioning from here on.
 - All arguments are checked when a writer is called, before any file is
   touched, instead of when the `with` block is entered.
 - Error messages no longer repeat the refused value; the command line quotes at
-  most 40 characters of the values it checks and cuts error lines to 120
-  characters.
+  most 40 characters of the values it checks and cuts every error or warning
+  message after its prefix to 120 characters.
 - On/off options (`overwrite`, `durable`, `fsync_dir`, `preserve_mode`,
   `preserve_owner`, `follow_symlinks`) accept only `True` or `False`, and a `mode`
   or `fsync` that is not a string raises `TypeError`: before, any value was taken
