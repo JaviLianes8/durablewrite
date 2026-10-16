@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import os
 import stat
+import sys
 from pathlib import Path
 
 import pytest
@@ -106,13 +107,15 @@ def test_a_replaced_link_does_not_inherit_the_mode_of_its_target(tmp_path: Path)
 @posix_only
 @pytest.mark.skipif(not is_root(), reason="changing the owner needs root")
 def test_preserve_owner_restores_another_users_file(tmp_path: Path) -> None:
+    if sys.platform == "win32":
+        pytest.skip("POSIX behaviour")
     target = tmp_path / "owned"
     target.write_text("old")
-    getattr(os, "chown")(target, 65534, 65534)
+    os.chown(target, 65534, 65534)
     write_text_atomic(target, "new", preserve_owner=True)
     assert (target.stat().st_uid, target.stat().st_gid) == (65534, 65534)
     write_text_atomic(target, "newer")
-    assert target.stat().st_uid == getattr(os, "geteuid")()
+    assert target.stat().st_uid == os.geteuid()
 
 
 def test_cli_accepts_special_permission_bits(
