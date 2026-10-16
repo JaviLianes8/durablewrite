@@ -23,6 +23,7 @@ HUGE = "x" * 100_000
 
 
 def _refused(tmp_path: Path, error: type[Exception], **kwargs: Any) -> str:
+    kwargs_names = set(kwargs)
     target = kwargs.pop("path", tmp_path / "t")
     mode = kwargs.pop("mode", "w")
     with pytest.raises(error) as info:
@@ -30,6 +31,8 @@ def _refused(tmp_path: Path, error: type[Exception], **kwargs: Any) -> str:
     assert list(tmp_path.iterdir()) == [], "nothing may be touched"
     message = str(info.value)
     assert len(message) < 100 and HUGE[:50] not in message
+    if "path" in kwargs_names:
+        assert "path" in message
     return message
 
 
