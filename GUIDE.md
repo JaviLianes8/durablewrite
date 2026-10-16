@@ -114,8 +114,8 @@ path is pinned by `tests/test_contract_platform.py`.
 - Microsoft does not document the rename as atomic. On a local NTFS volume it is
   a single metadata operation and our tests never observed a torn target. A
   reader opening the name while it is being replaced can, rarely, get
-  `FileNotFoundError` (about 1 open in 2,000 with four writers hammering one
-  file); 0.2.0 behaved the same. On FAT volumes and SMB shares the behaviour depends on the filesystem
+  `FileNotFoundError` (about 1 open in 1,000 to 2,000 with four writers
+  hammering one file); 0.2.0 behaved the same. On FAT volumes and SMB shares the behaviour depends on the filesystem
   or server and is not guaranteed.
 - The rename fails with `ERROR_ACCESS_DENIED`, `ERROR_SHARING_VIOLATION` or
   `ERROR_LOCK_VIOLATION` while any process holds the target open without

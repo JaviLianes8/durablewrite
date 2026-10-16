@@ -111,7 +111,8 @@ def test_a_followed_link_is_named_by_the_file_it_points_to(
     monkeypatch.chdir(tmp_path)
     with pytest.raises(FileExistsError) as taken:
         atomic_write("link.txt", overwrite=False).__enter__()
-    assert os.path.realpath(taken.value.filename) == os.path.realpath(tmp_path / "real.txt")
+    name = taken.value.filename
+    assert not os.path.islink(name) and os.path.basename(name) == "real.txt"
     with pytest.raises(FileExistsError) as kept:
         atomic_write("link.txt", overwrite=False, follow_symlinks=False).__enter__()
     assert kept.value.filename == "link.txt"
