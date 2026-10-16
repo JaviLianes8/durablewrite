@@ -7,7 +7,7 @@ import io
 import os
 import stat
 from collections.abc import Iterator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import IO, Any
 
@@ -42,9 +42,8 @@ class Plan:
     retry: RetryPolicy
 
 
-def _open(fd: int, plan: Plan) -> IO[Any]:
-    """Wrap ``fd``; the raw file owns it from the first call, so it is closed once."""
-    raw = os.fdopen(fd, "wb")
+def _wrap(raw: IO[bytes], plan: Plan) -> IO[Any]:
+    """Return the handle the block writes to; ``raw`` is closed if that fails."""
     if plan.binary:
         return raw
     try:
@@ -81,12 +80,13 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
     existing = existing_stat(target, plan.follow_symlinks)
     private = plan.permissions is not None or (plan.preserve_mode and existing is not None)
     tmp: str | None = None
-    fd = -1
+    fd, raw = -1, None
     published = False
     try:
         fd, tmp = create_temp(directory, os.path.basename(target), private)
-        handle, fd = _open(fd, plan), -1
-        with handle as f:
+        # From here the descriptor belongs to ``raw``; it alone closes it, exactly once.
+        raw = os.fdopen(fd, "wb")
+        with _wrap(raw, plan) as f:
             yield f
             f.flush()
             apply_metadata(
@@ -104,9 +104,10 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
         )
         published = True
     finally:
-        if fd >= 0:  # interrupted between creating the temp file and wrapping it
-            with suppress(OSError):
-                os.close(fd)
+        if raw is not None:
+            raw.close()  # a no-op once the block closed it
+        elif fd >= 0:  # interrupted before the descriptor was wrapped
+            os.close(fd)
         if tmp is not None and not published:
             remove_temp(tmp, plan.retry)
     if plan.sync_dir:

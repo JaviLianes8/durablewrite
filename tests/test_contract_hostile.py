@@ -68,10 +68,10 @@ def test_a_failing_wrapper_closes_the_descriptor_once_and_keeps_its_error(
 def test_an_interrupt_before_the_temp_file_is_wrapped_still_removes_it(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def interrupted(fd: int, plan: object) -> None:
+    def interrupted(raw: object, plan: object) -> None:
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(_write, "_open", interrupted)
+    monkeypatch.setattr(_write, "_wrap", interrupted)
     with pytest.raises(KeyboardInterrupt), atomic_write(tmp_path / "t"):
         pass
     assert list(tmp_path.iterdir()) == []
