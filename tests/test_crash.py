@@ -22,6 +22,19 @@ SEED = int(os.environ.get("DURABLEWRITE_CRASH_SEED", "20261012"))
 ITERATIONS = int(os.environ.get("DURABLEWRITE_CRASH_ITERATIONS", "40"))
 
 
+def _read(target: Path) -> bytes:
+    """Read like a polling reader on Windows: a scanner or the dying writer's handle
+    can make an open fail with PermissionError for a moment (see the guide)."""
+    for _ in range(50):
+        try:
+            return target.read_bytes()
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            time.sleep(0.05)
+    return target.read_bytes()
+
+
 @pytest.mark.slow
 def test_killing_a_writer_never_leaves_a_partial_target(tmp_path: Path) -> None:
     rng = random.Random(SEED)
@@ -39,7 +52,7 @@ def test_killing_a_writer_never_leaves_a_partial_target(tmp_path: Path) -> None:
         child.stdout.close()
         context = f"seed={SEED} iteration={iteration}"
         try:
-            generation, _ = parse_payload(target.read_bytes())
+            generation, _ = parse_payload(_read(target))
         except AssertionError as exc:
             raise AssertionError(f"torn target ({context}): {exc}") from None
         generations.add(generation)
