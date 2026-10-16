@@ -54,8 +54,8 @@ def test_legacy_flags_still_work(tmp_path: Path) -> None:
 
 def test_unknown_fsync_level_is_rejected_before_touching_disk(tmp_path: Path) -> None:
     with (
-        pytest.raises(ValueError, match="fsync must be one of"),
-        atomic_write(tmp_path / "f.txt", fsync="always"),  # type: ignore[arg-type]
+        pytest.raises(ValueError, match="fsync must be"),
+        atomic_write(tmp_path / "f.txt", fsync="always"),  # type: ignore[call-overload]
     ):
         pass
     assert list(tmp_path.iterdir()) == []

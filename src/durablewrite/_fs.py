@@ -4,11 +4,23 @@ from __future__ import annotations
 
 import errno
 import hashlib
+import importlib
 import os
 import secrets
 import stat
 import sys
+from types import ModuleType
 from typing import Union
+
+
+def _load_fcntl() -> ModuleType | None:
+    try:
+        return importlib.import_module("fcntl")
+    except ImportError:  # Windows
+        return None
+
+
+_fcntl = _load_fcntl()
 
 StrPath = Union[str, "os.PathLike[str]"]
 
@@ -37,7 +49,7 @@ def resolve_target(path: str, follow_symlinks: bool) -> str:
     if not path:
         raise ValueError("path must not be empty")
     if path.endswith(os.sep) or (os.altsep is not None and path.endswith(os.altsep)):
-        raise ValueError(f"path must name a file, not end with a separator: {path!r}")
+        raise ValueError("path must name a file, not end with a separator")
     if follow_symlinks and os.path.islink(path):
         return os.path.realpath(path)
     return path
@@ -94,17 +106,33 @@ def apply_metadata(
         os.chmod(tmp, stat.S_IMODE(existing.st_mode))
 
 
+def sync_fd(fd: int) -> None:
+    """Flush ``fd`` to stable storage.
+
+    macOS ``fsync`` leaves data in the drive's own cache; ``F_FULLFSYNC`` asks
+    the drive to flush it. Filesystems that refuse it get a plain ``fsync``.
+    """
+    full = getattr(_fcntl, "F_FULLFSYNC", None)
+    if _fcntl is not None and full is not None:
+        try:
+            _fcntl.fcntl(fd, full)
+            return
+        except OSError:
+            pass
+    os.fsync(fd)
+
+
 def fsync_directory(directory: str) -> None:
     """Flush the directory entry so a completed rename survives power loss.
 
     Windows offers no way to fsync a directory through the C runtime, so this
-    is a documented no-op there.
+    is a documented no-op there; the rename is written through instead.
     """
     if os.name == "nt":
         return
     fd = os.open(directory, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
     try:
-        os.fsync(fd)
+        sync_fd(fd)
     finally:
         os.close(fd)
 

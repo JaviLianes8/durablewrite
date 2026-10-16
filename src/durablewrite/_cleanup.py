@@ -6,7 +6,8 @@ import os
 import re
 import time
 
-from ._fs import TEMP_SUFFIX, StrPath, temp_stem
+from ._check import check_path, check_real
+from ._fs import TEMP_SUFFIX, StrPath, temp_stem, try_remove
 
 _TAIL = r"\.[0-9a-f]{8}" + re.escape(TEMP_SUFFIX) + r"$"
 _TEMP_NAME = re.compile(r"^\..+" + _TAIL, re.DOTALL)
@@ -36,18 +37,33 @@ def cleanup_temp_files(
         now: The current time as a Unix timestamp; defaults to :func:`time.time`.
 
     Returns:
-        The removed paths, sorted. Files that vanish concurrently or that are
-        still held open (Windows refuses to delete them) are skipped.
+        The removed paths, sorted. Files that vanish concurrently, that are
+        still held open (Windows refuses to delete them) or that cannot be
+        removed for any other reason are skipped.
+
+    Raises:
+        TypeError: An argument has the wrong type (``bytes`` paths included).
+        ValueError: ``older_than`` is negative or not finite, or ``now`` is
+            not finite.
+        OSError: ``directory`` cannot be listed (missing, not a directory).
+
+    >>> import os, tempfile
+    >>> with tempfile.TemporaryDirectory() as folder:
+    ...     stale = os.path.join(folder, ".data.json.0123abcd.dwtmp")
+    ...     open(stale, "wb").close()
+    ...     removed = cleanup_temp_files(folder, older_than=0)
+    ...     print([os.path.basename(p) for p in removed], os.listdir(folder))
+    ['.data.json.0123abcd.dwtmp'] []
     """
-    if older_than < 0:
-        raise ValueError("older_than must not be negative")
-    cutoff = (time.time() if now is None else now) - older_than
+    age = check_real("older_than", older_than)
+    folder = check_path(directory)
+    cutoff = (time.time() if now is None else check_real("now", now, minimum=None)) - age
     pattern = _TEMP_NAME
     if target is not None:
-        stem = temp_stem(os.path.basename(os.fspath(target)))
+        stem = temp_stem(os.path.basename(check_path(target)))
         pattern = re.compile(r"^\." + re.escape(stem) + _TAIL, re.DOTALL)
     removed: list[str] = []
-    with os.scandir(directory) as entries:
+    with os.scandir(folder) as entries:
         for entry in entries:
             if not pattern.match(entry.name):
                 continue
@@ -56,8 +72,8 @@ def cleanup_temp_files(
                     continue
                 if entry.stat(follow_symlinks=False).st_mtime > cutoff:
                     continue
-                os.remove(entry.path)
-            except (FileNotFoundError, PermissionError):
+            except OSError:
                 continue
-            removed.append(entry.path)
+            if try_remove(entry.path):
+                removed.append(entry.path)
     return sorted(removed)

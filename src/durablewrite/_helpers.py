@@ -30,6 +30,14 @@ def write_text_atomic(
     """Atomically replace ``path`` with ``text``.
 
     Keyword arguments have the meaning documented on :func:`atomic_write`.
+
+    >>> import os, tempfile
+    >>> with tempfile.TemporaryDirectory() as folder:
+    ...     path = os.path.join(folder, "notes.txt")
+    ...     write_text_atomic(path, "first")
+    ...     write_text_atomic(path, "second", fsync="file")
+    ...     print(open(path, encoding="utf-8").read())
+    second
     """
     with atomic_write(
         path,
@@ -66,6 +74,13 @@ def write_bytes_atomic(
     """Atomically replace ``path`` with ``data``.
 
     Keyword arguments have the meaning documented on :func:`atomic_write`.
+
+    >>> import os, tempfile
+    >>> with tempfile.TemporaryDirectory() as folder:
+    ...     path = os.path.join(folder, "blob.bin")
+    ...     write_bytes_atomic(path, b"payload", overwrite=False)
+    ...     print(open(path, "rb").read())
+    b'payload'
     """
     with atomic_write(
         path,
@@ -110,6 +125,13 @@ def write_json_atomic(
     The output ends with a single ``\n`` and uses ``\n`` line endings on every
     platform. ``indent``, ``sort_keys``, ``ensure_ascii``, ``default`` and ``allow_nan`` are
     passed to :func:`json.dumps`; the rest is documented on :func:`atomic_write`.
+
+    >>> import os, tempfile
+    >>> with tempfile.TemporaryDirectory() as folder:
+    ...     path = os.path.join(folder, "config.json")
+    ...     write_json_atomic(path, {"ready": True}, indent=None)
+    ...     print(open(path, encoding="utf-8").read().splitlines())
+    ['{"ready": true}']
     """
     text = json.dumps(
         obj,
