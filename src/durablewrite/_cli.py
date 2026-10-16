@@ -43,13 +43,17 @@ class _Parser(argparse.ArgumentParser):
         self.exit(1, f"{self.prog}: error: {message}\n")
 
 
+def _short(text: str) -> str:
+    return repr(text if len(text) <= 40 else text[:37] + "...")
+
+
 def _octal(text: str) -> int:
     try:
         value = int(text, 8)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"not an octal mode: {text!r}") from None
+        raise argparse.ArgumentTypeError(f"not an octal mode: {_short(text)}") from None
     if not 0 <= value <= 0o7777:
-        raise argparse.ArgumentTypeError(f"mode out of range: {text!r}")
+        raise argparse.ArgumentTypeError(f"mode out of range: {_short(text)}")
     return value
 
 
@@ -59,7 +63,7 @@ def _positive(text: str) -> int:
     except ValueError:
         value = 0
     if value < 1:
-        raise argparse.ArgumentTypeError(f"must be a positive integer: {text!r}")
+        raise argparse.ArgumentTypeError(f"must be a positive integer: {_short(text)}")
     return value
 
 
