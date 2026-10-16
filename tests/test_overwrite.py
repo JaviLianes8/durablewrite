@@ -26,9 +26,13 @@ def test_no_overwrite_refuses_an_existing_file_up_front(tmp_path: Path) -> None:
     assert leftovers(tmp_path, target.name) == []
 
 
-def test_no_overwrite_detects_a_file_created_during_the_write(tmp_path: Path) -> None:
+@pytest.mark.parametrize("level", ["none", "file", "full"])
+def test_no_overwrite_detects_a_file_created_during_the_write(tmp_path: Path, level: str) -> None:
     target = tmp_path / "once.txt"
-    with pytest.raises(FileExistsError), atomic_write(target, "wb", overwrite=False) as f:
+    with (
+        pytest.raises(FileExistsError),
+        atomic_write(target, "wb", overwrite=False, fsync=level) as f,  # type: ignore[call-overload]
+    ):
         f.write(b"loser")
         target.write_bytes(b"winner")
     assert target.read_bytes() == b"winner"
