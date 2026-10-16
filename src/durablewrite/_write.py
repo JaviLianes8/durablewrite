@@ -68,14 +68,13 @@ def _refuse_special(target: str, follow_symlinks: bool) -> None:
 @contextmanager
 def run(plan: Plan) -> Iterator[IO[Any]]:
     """Yield the temp file handle and publish it if the block exits normally."""
+    shown = resolve_target(plan.path, plan.follow_symlinks)
+    _refuse_special(shown, plan.follow_symlinks)  # errors name the path as given
+    if not plan.overwrite and os.path.lexists(shown):
+        raise FileExistsError(errno.EEXIST, "target already exists", shown)
     # Pinned to an absolute path now: a chdir while the block runs must not move the
     # rename away from the directory that holds the temp file and gets fsynced.
-    target = resolve_target(plan.path, plan.follow_symlinks)
-    if not os.path.isabs(target):
-        target = os.path.join(os.getcwd(), target)
-    _refuse_special(target, plan.follow_symlinks)
-    if not plan.overwrite and os.path.lexists(target):
-        raise FileExistsError(errno.EEXIST, "target already exists", target)
+    target = shown if os.path.isabs(shown) else os.path.join(os.getcwd(), shown)
     directory = os.path.dirname(target)
     existing = existing_stat(target, plan.follow_symlinks)
     private = plan.permissions is not None or (plan.preserve_mode and existing is not None)

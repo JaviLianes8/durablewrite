@@ -44,8 +44,8 @@ class _Parser(argparse.ArgumentParser):
 
 
 def _cut(message: str) -> str:
-    """Keep an error message to 120 characters: argparse and long paths repeat input."""
-    return message if len(message) <= 120 else message[:117] + "..."
+    """Keep a message to 120 characters, keeping its end where the file name is."""
+    return message if len(message) <= 120 else message[:58] + "..." + message[-59:]
 
 
 def _short(text: str) -> str:

@@ -265,11 +265,15 @@ Code that passes the documented argument types keeps working; the differences:
   `sleep` that is not callable, and delays or multipliers that are NaN, infinite
   or of the wrong type; `cleanup_temp_files` refuses a NaN or
   infinite age and a non-finite `now`.
-- `cleanup_temp_files` removes read-only temp files on Windows.
+- `cleanup_temp_files` removes read-only temp files on Windows, and
+  `older_than=0` removes every matching temp file whatever its time.
+- Errors raised before the block runs name the path as given; errors from the
+  rename name the absolute target (a relative target is pinned when the write
+  starts).
 - Error messages no longer repeat the refused value. The command line quotes at
   most 40 characters of the values it checks itself, and every error or warning
   message it prints after its `durablewrite: error:` prefix is cut to 120
-  characters.
+  characters, keeping its start and its end (where the file name is).
 - `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`.
 - The `dev` extra is gone; contributors use `requirements-dev.txt`.
 

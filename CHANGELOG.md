@@ -24,14 +24,22 @@ follow Semantic Versioning from here on.
   touched, instead of when the `with` block is entered.
 - Error messages no longer repeat the refused value; the command line quotes at
   most 40 characters of the values it checks and cuts every error or warning
-  message after its prefix to 120 characters.
+  message after its prefix to 120 characters, keeping its start and its end.
 - On/off options (`overwrite`, `durable`, `fsync_dir`, `preserve_mode`,
   `preserve_owner`, `follow_symlinks`) accept only `True` or `False`, and a `mode`
   or `fsync` that is not a string raises `TypeError`: before, any value was taken
   by truthiness, so `overwrite="no"` overwrote the file.
 - `atomic_write` is typed per mode: `IO[str]` for `"w"`, `IO[bytes]` for `"wb"`
   (`IO[Any]` only for a mode that is not a literal).
-- `cleanup_temp_files` also removes read-only temp files on Windows.
+- `cleanup_temp_files` also removes read-only temp files on Windows, and
+  `older_than=0` removes every matching temp file whatever its time (on Windows
+  with Python 3.10 to 3.12 a file just written could look newer than the clock
+  and be skipped).
+- Errors raised before the block runs name the path as it was given; errors from
+  the rename name the target as an absolute path, since a relative target is
+  pinned to the working directory when the write starts.
+- A `retry` that is not a `RetryPolicy` raises `TypeError` (0.2.0 raised
+  `AttributeError` and left a temp file).
 - The `dev` extra is replaced by `requirements-dev.txt`.
 
 ### Fixed

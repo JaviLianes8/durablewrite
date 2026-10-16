@@ -164,14 +164,14 @@ def test_cli_error_messages_are_cut_to_120_characters(
             main(argv)
         assert info.value.code == 1
         message = _last_error(capsys)
-        assert len(message) == 120 and message.endswith("...")
+        assert len(message) == 120 and "..." in message
     monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(b"x")))
     assert main([str(tmp_path / ("m" * 150) / "t")]) == 1
     message = _last_error(capsys)
-    assert len(message) == 120 and message.endswith("...")
+    assert len(message) == 120 and "..." in message
     with pytest.raises(SystemExit):
         main(["--fsync", "nope", str(tmp_path / "t")])
-    assert not _last_error(capsys).endswith("...")
+    assert "..." not in _last_error(capsys)
 
 
 def test_a_directory_sync_error_names_the_directory_once_and_keeps_the_errno(

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from conftest import posix_only
 
-from durablewrite import _write, atomic_write
+from durablewrite import _write, atomic_write, cleanup_temp_files
 
 
 def test_a_chdir_during_the_block_does_not_move_the_rename(
@@ -83,3 +83,24 @@ def test_a_relative_link_is_replaced_not_followed_without_follow_symlinks(
     assert not (tmp_path / "lnk").is_symlink()
     assert (tmp_path / "lnk").read_text() == "new"
     assert (tmp_path / "real").read_text() == "keep"
+
+
+def test_errors_before_the_block_name_the_path_as_given(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "e.txt").write_text("x")
+    (tmp_path / "d").mkdir()
+    with pytest.raises(FileExistsError) as taken:
+        atomic_write("e.txt", overwrite=False).__enter__()
+    with pytest.raises(IsADirectoryError) as folder:
+        atomic_write("d").__enter__()
+    assert (taken.value.filename, folder.value.filename) == ("e.txt", "d")
+
+
+def test_cleanup_with_age_zero_removes_files_dated_in_the_future(tmp_path: Path) -> None:
+    ahead = tmp_path / ".t.0123abcd.dwtmp"
+    ahead.write_bytes(b"")
+    future = 4_000_000_000
+    os.utime(ahead, (future, future))
+    assert cleanup_temp_files(tmp_path, older_than=0) == [str(ahead)]

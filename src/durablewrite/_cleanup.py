@@ -31,8 +31,9 @@ def cleanup_temp_files(
         directory: The directory to scan (not recursive).
         older_than: Minimum age in seconds, by modification time. The default of
             one hour leaves alone the temp files of running writers, unless a
-            writer keeps one open for longer than that; pass ``0`` only when
-            you know no writer is active.
+            writer keeps one open for longer than that. ``0`` removes every
+            matching file whatever its time; pass it only when you know no
+            writer is active.
         target: Restrict the cleanup to temp files of this one target file.
         now: The current time as a Unix timestamp; defaults to :func:`time.time`.
 
@@ -70,7 +71,8 @@ def cleanup_temp_files(
             try:
                 if not entry.is_file(follow_symlinks=False):
                     continue
-                if entry.stat(follow_symlinks=False).st_mtime > cutoff:
+                # Zero means every match: file times can run ahead of time.time().
+                if age > 0 and entry.stat(follow_symlinks=False).st_mtime > cutoff:
                     continue
             except OSError:
                 continue

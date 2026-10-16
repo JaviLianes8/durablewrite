@@ -14,7 +14,8 @@ from durablewrite._cli import _cut, main
 
 def test_messages_are_cut_exactly_past_120_characters() -> None:
     assert _cut("a" * 120) == "a" * 120
-    assert _cut("b" * 121) == "b" * 117 + "..."
+    assert _cut("b" * 60 + "c" * 61) == "b" * 58 + "..." + "c" * 59
+    assert _cut("x" * 200 + "name.json'").endswith("name.json'")
     assert _cut("") == ""
 
 
@@ -31,7 +32,7 @@ def test_an_unsynced_directory_gives_status_3_and_a_cut_warning_naming_the_targe
         assert main([str(target)]) == 3
         line = capsys.readouterr().err.splitlines()[-1]
         prefix = "durablewrite: warning: "
-        assert line.startswith(prefix + str(target)[:60])
+        assert line.startswith(prefix + str(target)[:50])
         message = line[len(prefix) :]
-        assert len(message) <= 120 and (message.endswith("...") or not cut)
+        assert len(message) <= 120 and ("..." in message or not cut)
         assert target.read_bytes() == b"data"

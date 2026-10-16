@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import venv
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,8 @@ def installed(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
     assert built.returncode == 0, built.stderr
     wheels = list(dist.glob("durablewrite-*.whl"))
     assert [w.name for w in wheels] == [f"durablewrite-{__version__}-py3-none-any.whl"]
+    with zipfile.ZipFile(wheels[0]) as archive:
+        assert "durablewrite/__init__.py" in archive.namelist(), "built from a tree without src"
     env_dir = tmp_path_factory.mktemp("venv")
     # No pip inside the venv: the host pip installs into it with --python, which
     # also works where the interpreter ships without ensurepip.
