@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import errno
+import hashlib
 import os
 from pathlib import Path
 
@@ -92,3 +93,11 @@ def test_a_read_only_temp_removed_by_someone_else_is_not_reported(
 
     monkeypatch.setattr(os, "remove", raced)
     assert cleanup_temp_files(tmp_path, older_than=0) == []
+
+
+def test_long_names_get_the_stable_hashed_stem(tmp_path: Path) -> None:
+    name = "n" * 60
+    digest = hashlib.sha256(name.encode()).hexdigest()[:8]
+    stale = tmp_path / f".{name[:39]}~{digest}.0123abcd.dwtmp"
+    stale.write_bytes(b"")
+    assert cleanup_temp_files(tmp_path, older_than=0, target=name) == [str(stale)]

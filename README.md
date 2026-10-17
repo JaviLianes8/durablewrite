@@ -89,7 +89,8 @@ Options: `--append`, `--json` (refuse anything but strict JSON), `--fsync
 {none,file,full}`, `--no-overwrite`, `--permissions OCTAL`,
 `--no-follow-symlinks`, `--attempts N`. Errors go to standard error with exit
 status 1, and TARGET is left as it was. If TARGET was replaced but its directory
-could not be fsynced, the exit status is 3. `python -m durablewrite` works too.
+could not be fsynced, the exit status is 3; an interrupted run exits 130.
+`python -m durablewrite` works too.
 
 ## Guarantees and limits
 

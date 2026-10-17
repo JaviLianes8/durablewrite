@@ -33,6 +33,7 @@ open, which blocks the rename, so that form is refused: pipe the file instead.
 Concurrent --append runs may lose each other's lines.
 
 exit status: 0 on success; 1 on any error, with the target left as it was;
+130 when interrupted;
 3 when the target was replaced but its directory could not be fsynced.
 """
 

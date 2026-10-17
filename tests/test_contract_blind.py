@@ -148,6 +148,13 @@ def test_write_json_passes_preserve_mode_through(tmp_path: Path) -> None:
     assert stat.S_IMODE(target.stat().st_mode) == 0o644
 
 
+def test_write_json_passes_fsync_through(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    synced: list[int] = []
+    monkeypatch.setattr(_write, "sync_fd", synced.append)
+    write_json_atomic(tmp_path / "c.json", {}, fsync="none")
+    assert synced == []
+
+
 def test_write_json_syncs_the_directory_by_default(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

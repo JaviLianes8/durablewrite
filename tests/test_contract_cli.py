@@ -9,7 +9,12 @@ from pathlib import Path
 import pytest
 
 from durablewrite import _write
-from durablewrite._cli import _cut, main
+from durablewrite._cli import _cut, _short, main
+
+
+def test_quoted_values_keep_at_most_40_characters() -> None:
+    assert _short("a" * 40) == repr("a" * 40)
+    assert _short("b" * 41) == repr("b" * 37 + "...")
 
 
 def test_messages_are_cut_exactly_past_120_characters() -> None:

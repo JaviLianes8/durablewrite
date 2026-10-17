@@ -155,9 +155,11 @@ def atomic_write(
         TypeError: ``path`` is bytes, an on/off option is not a bool, or another
             argument has the wrong type.
         ValueError: A bad ``mode``, ``fsync``, ``newline`` or ``permissions``,
-            or a ``path`` that is empty or ends with a separator.
-        LookupError: An unknown ``encoding``.
+            or a ``path`` that is empty, contains NUL, ends with a separator or
+            (on Windows) names an alternate data stream.
+        LookupError: An unknown ``encoding`` or one that is not a text encoding.
         IsADirectoryError: ``path`` is a directory.
+        OSError: ``path`` is a FIFO, device or socket (``errno.EINVAL``).
         FileExistsError: ``overwrite`` is False and ``path`` exists.
         SharingViolationError: The rename stayed blocked for the whole retry budget.
         DirectorySyncError: The file was replaced, but the directory sync failed.

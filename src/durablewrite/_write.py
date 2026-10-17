@@ -74,7 +74,14 @@ def run(plan: Plan) -> Iterator[IO[Any]]:
         raise FileExistsError(errno.EEXIST, "target already exists", shown)
     # Pinned to an absolute path now: a chdir while the block runs must not move the
     # rename away from the directory that holds the temp file and gets fsynced.
-    target = shown if os.path.isabs(shown) else os.path.join(os.getcwd(), shown)
+    # Windows resolves "D:x" against that drive's own cwd, which only abspath knows;
+    # POSIX must not collapse ".." through a symlinked directory, so it joins.
+    if os.path.isabs(shown):
+        target = shown
+    elif os.name == "nt":
+        target = os.path.abspath(shown)
+    else:
+        target = os.path.join(os.getcwd(), shown)
     directory = os.path.dirname(target)
     existing = existing_stat(target, plan.follow_symlinks)
     private = plan.permissions is not None or (plan.preserve_mode and existing is not None)

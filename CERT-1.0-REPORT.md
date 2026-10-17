@@ -32,7 +32,7 @@ Progress:
 | 12 | Dated CHANGELOG 1.0.0 section | PASS: 2026-10-16 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS: pinned by `tests/test_packaging.py` |
 | 14 | sdist and wheel contents | PASS |
-| 15 | Gates each exit 0 | PASS: fresh clone at 797a504: format, lint, `mypy --strict src` and `src tests`, `pytest` 386 passed, 79 skipped on Windows (Elena's PC or the laptop, 3.14); 443 passed, 22 skipped on WSL as `nobody`, 441 and 24 as root |
+| 15 | Gates each exit 0 | PASS: fresh clone at 797a504: format, lint, `mypy --strict src` and `src tests`, `pytest` 386 passed, 79 skipped on a second Windows PC (CPython 3.14, oracles not fetched there); 443 passed, 22 skipped on WSL as `nobody`, 441 and 24 as root, with the oracles fetched (426/39 and 428/37 without) |
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | pending; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 50 on two platforms; blind lens e 167 plus 10; lens a 30, 25 and 5; lens b 14 and 4; lens c 40, 19 and 1; lens d 26 and 3; every survivor killed by a contract or argued equivalent |
@@ -161,7 +161,7 @@ and cleanup (4,000 against 16,000 entries).
 Author mutation round: 50 mutations over every module, each applied alone to a fresh
 clone, suite with `-x` (wheel and upgrade tests excluded), file restored after, baseline
 green before and after. Linux: WSL2, CPython 3.14.4, as `nobody` and as root. Windows:
-Elena's PC, CPython 3.14.2. A mark `*` means the mutant survived the first run and was
+a second Windows PC, CPython 3.14.2. A mark `*` means the mutant survived the first run and was
 killed by a contract added after it, confirmed by rerunning that mutant.
 
 | # | Module | Mutation | Linux | Windows |
@@ -233,9 +233,9 @@ fsync-level parametrisation in `test_overwrite.py`.
 The first Windows runs also showed test weaknesses, fixed before the final round: the
 random-kill test read and cleaned the target while a virus scanner held it for a moment;
 the locked-temp test left its holder process running when it failed; four concurrent
-writers on the slow laptop outlasted the default retry budget (documented behaviour; the
+writers on a slow third Windows machine outlasted the default retry budget (documented behaviour; the
 test now gives its writers a larger budget and the guide says when to); and a 240
-character name failed on the laptop, whose Windows has no long path support, for
+character name failed on that machine, whose Windows has no long path support, for
 `os.replace` and `MoveFileExW` alike (the test now accepts that clean refusal).
 
 ## Packaging and end-to-end (items 8, 10, 13, 14), author run
@@ -253,8 +253,8 @@ character name failed on the laptop, whose Windows has no long path support, for
 - Upgrade: PyPI 0.2.0 installed in a fresh venv and upgraded in place to the 1.0.0 wheel
   (`tests/test_e2e_upgrade.py`): same exported names and written content; NaN delays and
   NaN cleanup ages accepted before and refused after; `bytes` paths refused.
-- Full suite on Elena's PC three times in a row: 333 passed, 66 skipped each time; green
-  on the laptop and on WSL as root and as `nobody`.
+- Full suite on the second Windows PC three times in a row: 333 passed, 66 skipped each
+  time; green on the third machine and on WSL as root and as `nobody`.
 
 ## Independent QA lenses (item 19)
 
