@@ -1,5 +1,7 @@
 # durablewrite
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Durable, cross-platform atomic file writes for Python. Data goes to a temp file
 in the same directory, is flushed to disk, then renamed onto the target, and the
 rename itself is made durable. A reader never sees a half-written file, and a

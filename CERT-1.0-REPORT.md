@@ -12,7 +12,7 @@ Progress:
 - [x] Five QA lenses report PASS (item 19)
 - [x] Independent reviewer reports PASS (item 16)
 - [x] Gates (item 15), final run
-- [ ] PR and trace guard CLEAN (item 17); merge and publish left to the maintainer
+- [x] PR #3 and trace guard CLEAN (item 17); merge and publish left to the maintainer
 
 ## Scorecard
 
@@ -34,7 +34,7 @@ Progress:
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: fresh clone at 797a504: format, lint, `mypy --strict src` and `src tests`, `pytest` 386 passed, 79 skipped on a second Windows PC (CPython 3.14, oracles not fetched there); 443 passed, 22 skipped on WSL as `nobody`, 441 and 24 as root, with the oracles fetched (426/39 and 428/37 without) |
 | 16 | Independent reviewer | PASS: round 1 FAIL at ef4eaf5, round 2 FAIL at 9fb1509, round 3 FAIL at 3355ddd, round 4 PASS at cb6c5dd |
-| 17 | PR and trace guard | pending; merge and publish left to the maintainer |
+| 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 50 on two platforms; blind lens e 167 plus 10; reviewer 35, 5, 16 and 4; lens a 30, 25 and 5; lens b 14 and 4; lens c 40, 19 and 1; lens d 26 and 3; every survivor killed by a contract or argued equivalent |
 | 19 | Five independent QA lenses | PASS: a round 4, b round 3, c round 4, d round 4, e round 3 |
 
