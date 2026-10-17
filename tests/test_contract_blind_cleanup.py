@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from conftest import posix_only, windows_only
 
-from durablewrite import cleanup_temp_files
+from durablewrite import RetryPolicy, atomic_write, cleanup_temp_files
 
 HOUR = 3600
 
@@ -60,3 +60,35 @@ def test_cleanup_matches_names_with_a_newline(tmp_path: Path) -> None:
     odd = tmp_path / ".a\nb.0123abcd.dwtmp"
     odd.write_bytes(b"")
     assert cleanup_temp_files(tmp_path, older_than=0) == [str(odd)]
+
+
+@posix_only  # Windows cannot delete the temp file while the writer holds it open
+def test_a_temp_file_already_gone_is_not_waited_for(tmp_path: Path) -> None:
+    slept: list[float] = []
+    with (
+        pytest.raises(KeyError),
+        atomic_write(tmp_path / "t", retry=RetryPolicy(sleep=slept.append)),
+    ):
+        for name in os.listdir(tmp_path):
+            os.remove(tmp_path / name)
+        raise KeyError("block")
+    assert slept == [] and list(tmp_path.iterdir()) == []
+
+
+@windows_only
+def test_a_read_only_temp_removed_by_someone_else_is_not_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".t.0123abcd.dwtmp").write_bytes(b"")
+    real = os.remove
+    calls = {"n": 0}
+
+    def raced(path: str) -> None:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            real(path)
+            raise PermissionError(13, "denied", path, 5)
+        real(path)
+
+    monkeypatch.setattr(os, "remove", raced)
+    assert cleanup_temp_files(tmp_path, older_than=0) == []
