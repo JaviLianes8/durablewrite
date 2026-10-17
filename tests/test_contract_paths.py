@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 import pytest
-from conftest import posix_only
+from conftest import posix_only, windows_only
 
 from durablewrite import _write, atomic_write, cleanup_temp_files
 
@@ -132,3 +132,31 @@ def test_cleanup_with_age_zero_removes_files_dated_in_the_future(tmp_path: Path)
     future = 4_000_000_000
     os.utime(ahead, (future, future))
     assert cleanup_temp_files(tmp_path, older_than=0) == [str(ahead)]
+
+
+@windows_only
+def test_a_one_letter_stream_name_after_a_drive_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    drive = os.path.splitdrive(str(tmp_path))[0]
+    with pytest.raises(ValueError, match="data stream"):
+        atomic_write(drive + "a:s")
+    assert list(tmp_path.iterdir()) == []
+
+
+@windows_only
+def test_a_drive_relative_target_is_pinned_with_the_drive_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first, second = tmp_path / "a", tmp_path / "b"
+    first.mkdir()
+    second.mkdir()
+    monkeypatch.chdir(first)
+    # A cwd on another drive: joining with it would leave "C:t" relative.
+    monkeypatch.setattr(os, "getcwd", lambda: "Z:\elsewhere")
+    with atomic_write(os.path.splitdrive(str(tmp_path))[0] + "t") as f:
+        f.write("x")
+        os.chdir(second)
+    assert (first / "t").read_text() == "x"
+    assert os.listdir(second) == [] and os.listdir(first) == ["t"]

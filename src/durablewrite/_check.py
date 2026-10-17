@@ -5,6 +5,7 @@ from __future__ import annotations
 import codecs
 import math
 import os
+import re
 from typing import Any
 
 _NEWLINES = (None, "", "\n", "\r", "\r\n")
@@ -35,7 +36,8 @@ def check_target(path: Any) -> str:
     text = check_path(path)
     if not text:
         raise ValueError("path must not be empty")
-    if os.name == "nt" and ":" in os.path.basename(os.path.splitdrive(text)[1]):
+    # Not basename: on Windows it drops a drive-like "a:" prefix too ("C:a:s").
+    if os.name == "nt" and ":" in re.split(r"[\\/]", os.path.splitdrive(text)[1])[-1]:
         raise ValueError("path must not name an alternate data stream")
     if text.endswith(os.sep) or (os.altsep is not None and text.endswith(os.altsep)):
         raise ValueError("path must name a file, not end with a separator")
