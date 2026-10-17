@@ -9,10 +9,34 @@ Progress:
 - [x] Contract, fuzz and author mutation round (items 6, 9, 18)
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0 (items 8, 10, 13, 14), author run
-- [ ] Five QA lenses report PASS (item 19)
+- [x] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
-- [ ] Gates (item 15), final run
+- [x] Gates (item 15), final run
 - [ ] PR and trace guard CLEAN (item 17); merge and publish left to the maintainer
+
+## Scorecard
+
+| # | Item | Result |
+| --- | --- | --- |
+| 1 | Public API reviewed for stability | PASS: the twelve 0.2.0 names keep their parameters and defaults; every change is in the CHANGELOG and the guide's upgrade section, checked against PyPI 0.2.0 by lens a and lens d |
+| 2 | `__all__` exact, no private imports in docs | PASS: twelve names, pinned by `tests/test_contract.py` |
+| 3 | Docstrings with runnable examples, doctests | PASS: every public name, constants included; `tests/test_docs.py` runs them and every README example |
+| 4 | Typed end to end | PASS: `mypy --strict src tests` clean on Windows and Linux, `py.typed` shipped, per-mode overloads; `Any` only where documented |
+| 5 | Typed, documented, bounded errors | PASS: the guide's error table; messages never repeat the refused value; CLI messages cut to 120 characters |
+| 6 | Contract tests of every public name | PASS: the contract files listed below, plus those added by every lens round |
+| 7 | Real ground truth | PASS: 13 fetched OS and Python pages (manifest), real libc call traces and kills on Linux, kills at every call on Windows and POSIX, 120 scenarios recorded from atomicwrites 1.4.1 on both platforms; lens b re-derived it with its own shim, hooks and 23 scenarios |
+| 8 | Real e2e from the wheel | PASS: console script and `python -m` by subprocess from a fresh venv, sabotages caught, upgrade in place from PyPI 0.2.0 |
+| 9 | Seeded fuzz, no crash, hang or blowup | PASS: `tests/test_fuzz.py` and linear-time checks; lens c's 20,000 random argument sets, stress and hostile filesystems |
+| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2, 3.14.2 free-threaded on Windows; 3.14.4 on Linux |
+| 11 | README and `twine check` | PASS |
+| 12 | Dated CHANGELOG 1.0.0 section | PASS: 2026-10-16 |
+| 13 | pyproject 1.0.0, Production/Stable | PASS: pinned by `tests/test_packaging.py` |
+| 14 | sdist and wheel contents | PASS |
+| 15 | Gates each exit 0 | PASS: fresh clone at 797a504: format, lint, `mypy --strict src` and `src tests`, `pytest` 386 passed, 79 skipped on Windows (Elena's PC or the laptop, 3.14); 443 passed, 22 skipped on WSL as `nobody`, 441 and 24 as root |
+| 16 | Independent reviewer | pending |
+| 17 | PR and trace guard | pending; merge and publish left to the maintainer |
+| 18 | Contracts bite (mutations) | PASS: author 50 on two platforms; blind lens e 167 plus 10; lens a 30, 25 and 5; lens b 14 and 4; lens c 40, 19 and 1; lens d 26 and 3; every survivor killed by a contract or argued equivalent |
+| 19 | Five independent QA lenses | PASS: a round 4, b round 3, c round 4, d round 4, e round 3 |
 
 ## Baseline on 0.2.0 (before any change)
 
