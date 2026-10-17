@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "durablewrite"
-version = "0.2.0"
+version = "1.0.0"
 description = "Durable, cross-platform atomic file writes: temp-same-dir plus os.replace plus file and dir fsync"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,9 +13,20 @@ license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
 keywords = ["atomic", "file", "write", "fsync", "durable", "os.replace", "crash-safe"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
     "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Filesystems",
     "Typing :: Typed",
 ]
 dependencies = []
@@ -23,12 +34,9 @@ dependencies = []
 [project.scripts]
 durablewrite = "durablewrite._cli:main"
 
-[project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
-
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/durablewrite"
+Source = "https://github.com/JaviLianes8/durablewrite"
 Issues = "https://github.com/JaviLianes8/durablewrite/issues"
 Changelog = "https://github.com/JaviLianes8/durablewrite/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
@@ -37,20 +45,38 @@ Funding = "https://buymeacoffee.com/jlianesglrs"
 [tool.hatch.build.targets.wheel]
 packages = ["src/durablewrite"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/scripts/fetch_oracles.py",
+    "/scripts/record_reference.py",
+    "/README.md",
+    "/GUIDE.md",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/LICENSE",
+    "/requirements-dev.txt",
+]
+exclude = ["/tests/oracle/*", "!/tests/oracle/MANIFEST.json", "__pycache__"]
+
 [tool.ruff]
 line-length = 100
+extend-exclude = ["tests/oracle"]
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.mypy]
 python_version = "3.10"
 strict = true
 mypy_path = "src"
+exclude = ["^tests/oracle/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+xfail_strict = true
 pythonpath = ["src"]
 addopts = "-q"
 markers = ["slow: real multi-process and packaging tests"]

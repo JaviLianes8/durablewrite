@@ -8,6 +8,9 @@ class DurableWriteError(OSError):
 
     It subclasses :class:`OSError`, so code that already handles ``OSError``
     around a file write keeps working unchanged.
+
+    >>> issubclass(DurableWriteError, OSError)
+    True
     """
 
 
@@ -24,6 +27,10 @@ class SharingViolationError(DurableWriteError, PermissionError):
     if it stays locked it is left for :func:`~durablewrite.cleanup_temp_files`.
     ``attempts`` is the number of rename attempts made. The last underlying
     error, with its ``winerror`` code, is chained as ``__cause__``.
+
+    >>> error = SharingViolationError(13, "rename kept failing", "data.json")
+    >>> isinstance(error, PermissionError), error.filename, error.attempts
+    (True, 'data.json', 0)
     """
 
     attempts: int = 0
@@ -37,4 +44,8 @@ class DirectorySyncError(DurableWriteError):
     example when the directory cannot be opened for reading or the filesystem
     refuses to fsync directories. ``filename`` is the directory; the
     underlying error is chained as ``__cause__``.
+
+    >>> error = DirectorySyncError(5, "file replaced, but its directory was not synced", "data")
+    >>> isinstance(error, DurableWriteError), error.filename
+    (True, 'data')
     """

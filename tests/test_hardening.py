@@ -6,6 +6,7 @@ import math
 import os
 import stat
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -89,19 +90,25 @@ def test_a_locked_temp_file_is_still_removed_once_released(tmp_path: Path) -> No
 
     def sleep(delay: float) -> None:
         sleeps.append(delay)
-        if len(sleeps) == 3:  # the first wait of the removal phase
+        if len(sleeps) == 5:  # the first wait of the removal phase
             _kill(holder.pop())
+        elif len(sleeps) > 5:  # a virus scanner may open the file for a moment
+            time.sleep(0.2)
 
-    policy = RetryPolicy(max_attempts=3, initial_delay=0.0, sleep=sleep)
-    with pytest.raises(SharingViolationError), atomic_write(target, retry=policy) as f:
-        f.write("new")
-        f.flush()
-        (temp,) = _temp_files(tmp_path)
-        child = spawn_worker("hold", str(temp), "60")
-        assert child.stdout is not None
-        assert child.stdout.readline().strip() == "holding"
-        holder.append(child)
-    assert holder == []
+    policy = RetryPolicy(max_attempts=5, initial_delay=0.0, sleep=sleep)
+    try:
+        with pytest.raises(SharingViolationError), atomic_write(target, retry=policy) as f:
+            f.write("new")
+            f.flush()
+            (temp,) = _temp_files(tmp_path)
+            child = spawn_worker("hold", str(temp), "60")
+            assert child.stdout is not None
+            assert child.stdout.readline().strip() == "holding"
+            holder.append(child)
+    finally:
+        while holder:  # never leave the holder running when the test fails
+            _kill(holder.pop())
+    assert len(sleeps) >= 5, "the holder was never released"
     assert target.read_text(encoding="utf-8") == "old"
     assert leftovers(tmp_path, target.name) == []
 

@@ -33,6 +33,7 @@ open, which blocks the rename, so that form is refused: pipe the file instead.
 Concurrent --append runs may lose each other's lines.
 
 exit status: 0 on success; 1 on any error, with the target left as it was;
+130 when interrupted;
 3 when the target was replaced but its directory could not be fsynced.
 """
 
@@ -40,16 +41,25 @@ exit status: 0 on success; 1 on any error, with the target left as it was;
 class _Parser(argparse.ArgumentParser):
     def error(self, message: str) -> NoReturn:
         self.print_usage(sys.stderr)
-        self.exit(1, f"{self.prog}: error: {message}\n")
+        self.exit(1, f"{self.prog}: error: {_cut(message)}\n")
+
+
+def _cut(message: str) -> str:
+    """Keep a message to 120 characters, keeping its end where the file name is."""
+    return message if len(message) <= 120 else message[:58] + "..." + message[-59:]
+
+
+def _short(text: str) -> str:
+    return repr(text if len(text) <= 40 else text[:37] + "...")
 
 
 def _octal(text: str) -> int:
     try:
         value = int(text, 8)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"not an octal mode: {text!r}") from None
+        raise argparse.ArgumentTypeError(f"not an octal mode: {_short(text)}") from None
     if not 0 <= value <= 0o7777:
-        raise argparse.ArgumentTypeError(f"mode out of range: {text!r}")
+        raise argparse.ArgumentTypeError(f"mode out of range: {_short(text)}")
     return value
 
 
@@ -59,7 +69,7 @@ def _positive(text: str) -> int:
     except ValueError:
         value = 0
     if value < 1:
-        raise argparse.ArgumentTypeError(f"must be a positive integer: {text!r}")
+        raise argparse.ArgumentTypeError(f"must be a positive integer: {_short(text)}")
     return value
 
 
@@ -111,7 +121,9 @@ def _reject_constant(name: str) -> None:
 
 def _check_json(payload: bytes) -> None:
     try:
-        json.loads(payload.decode("utf-8"), parse_constant=_reject_constant)
+        # Numbers are only checked, not converted: int() refuses over 4300 digits.
+        text = payload.decode("utf-8")
+        json.loads(text, parse_constant=_reject_constant, parse_int=len, parse_float=len)
     except (ValueError, RecursionError) as exc:
         raise ValueError(f"standard input is not valid UTF-8 JSON ({exc})") from exc
 
@@ -126,8 +138,8 @@ def _refuse_redirected_target(source: IO[bytes], target: str) -> None:
         return
     if stat.S_ISREG(src.st_mode) and os.path.samestat(src, dst):
         raise ValueError(
-            "on Windows TARGET cannot also be redirected into standard input: the shell "
-            "keeps it open, which blocks the rename. Pipe it instead: type FILE | durablewrite FILE"
+            "TARGET is also standard input and Windows keeps it open. "
+            "Pipe it instead: type FILE | durablewrite FILE"
         )
 
 
@@ -167,10 +179,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         _write(args, sys.stdin.buffer)
     except DirectorySyncError as exc:
-        print(f"durablewrite: warning: {args.target}: {exc}", file=sys.stderr)
+        print(f"durablewrite: warning: {_cut(f'{args.target}: {exc}')}", file=sys.stderr)
         return 3
     except (OSError, ValueError) as exc:
-        print(f"durablewrite: error: {exc}", file=sys.stderr)
+        print(f"durablewrite: error: {_cut(str(exc))}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         print("durablewrite: interrupted, target left unchanged", file=sys.stderr)

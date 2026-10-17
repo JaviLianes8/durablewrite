@@ -10,3 +10,5 @@ dist/
 .ruff_cache/
 .coverage
 htmlcov/
+tests/oracle/*
+!tests/oracle/MANIFEST.json

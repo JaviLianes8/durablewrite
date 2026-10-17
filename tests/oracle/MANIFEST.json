@@ -1,0 +1,187 @@
+{
+  "atomicwrites": {
+    "kind": "package",
+    "title": "atomicwrites 1.4.1 (PyPI sdist)",
+    "url": "https://files.pythonhosted.org/packages/87/c6/53da25344e3e3a9c01095a89f16dbcda021c609ddb42dd6d7c0528236fb2/atomicwrites-1.4.1.tar.gz",
+    "revision": "1.4.1",
+    "licence": "MIT (LICENSE inside the sdist)",
+    "fetched": "2026-10-16",
+    "size": 14227,
+    "sha256": "81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"
+  },
+  "movefileexw": {
+    "kind": "page",
+    "title": "Microsoft Learn, MoveFileExW",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 63000,
+    "sha256": "2c015011fc0f22b1c4f7620066840329e54750c319cfab3b9cdaf996447bd092",
+    "facts": [
+      "MOVEFILE_WRITE_THROUGH",
+      "MOVEFILE_REPLACE_EXISTING"
+    ]
+  },
+  "flushfilebuffers": {
+    "kind": "page",
+    "title": "Microsoft Learn, FlushFileBuffers",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 54802,
+    "sha256": "ce685bd64c3e18852624fb87d398b6396ab54f5769158c42b68b2258cc7d406e",
+    "facts": [
+      "FlushFileBuffers",
+      "GENERIC_WRITE"
+    ]
+  },
+  "replacefilew": {
+    "kind": "page",
+    "title": "Microsoft Learn, ReplaceFileW",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 62061,
+    "sha256": "fceee07ac5c08576621a81ea8e5540d00b1bba488a875c25708549010d6e69c3",
+    "facts": [
+      "ERROR_UNABLE_TO_MOVE_REPLACEMENT_2"
+    ]
+  },
+  "crt-commit": {
+    "kind": "page",
+    "title": "Microsoft Learn, _commit",
+    "url": "https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/commit",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 49360,
+    "sha256": "82a0fc97baca9c809fe87feb4dec0058a776bde4be8aa9a57f435d893b187729",
+    "facts": [
+      "_commit"
+    ]
+  },
+  "linux-fsync": {
+    "kind": "page",
+    "title": "Linux man-pages, fsync(2)",
+    "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 15152,
+    "sha256": "f0a986d21500222ecb69580fc7a910f346c6b1ff1005ca515501fb05bb5d91f5",
+    "facts": [
+      "fsync",
+      "directory"
+    ]
+  },
+  "linux-rename": {
+    "kind": "page",
+    "title": "Linux man-pages, rename(2)",
+    "url": "https://man7.org/linux/man-pages/man2/rename.2.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 23571,
+    "sha256": "8772946a809a0db54f4854f200908f10bee758ea452e8df5efd955bc3b8e6e57",
+    "facts": [
+      "atomically",
+      "EXDEV"
+    ]
+  },
+  "linux-link": {
+    "kind": "page",
+    "title": "Linux man-pages, link(2)",
+    "url": "https://man7.org/linux/man-pages/man2/link.2.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 19883,
+    "sha256": "9cb197a7abe32a459bb3dbe96f67d906ff199e0f9d5f19f41a3a05e46cea1ec9",
+    "facts": [
+      "EEXIST"
+    ]
+  },
+  "posix-rename": {
+    "kind": "page",
+    "title": "POSIX.1-2024, rename",
+    "url": "https://pubs.opengroup.org/onlinepubs/9799919799/functions/rename.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 26407,
+    "sha256": "06671610134b0a52cdf4dcdaf382f72fef85ef51088b8a52b8679c7f03829318",
+    "facts": [
+      "rename"
+    ]
+  },
+  "apple-fsync": {
+    "kind": "page",
+    "title": "Apple, fsync(2)",
+    "url": "https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/fsync.2.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 15388,
+    "sha256": "6f2812ad0289bff54203ea3912be236d48f3aaf87db41bb3afe5af85aa7fd1f7",
+    "facts": [
+      "F_FULLFSYNC"
+    ]
+  },
+  "python-os": {
+    "kind": "page",
+    "title": "Python documentation, os",
+    "url": "https://docs.python.org/3/library/os.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 790778,
+    "sha256": "4b26b147334693486fb9b7b9c01ea4045b99062db91500837bf49a81905849eb",
+    "facts": [
+      "different filesystems",
+      "_commit"
+    ]
+  },
+  "lwn-ensuring-data": {
+    "kind": "page",
+    "title": "Jeff Moyer, Ensuring data reaches disk, LWN.net",
+    "url": "https://lwn.net/Articles/457667/",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 84235,
+    "sha256": "0605e7f85328caa60fce214c54b39c7ea85538cb41e5194253b433272f49c1bc",
+    "facts": [
+      "fsync",
+      "rename"
+    ]
+  },
+  "ext4-options": {
+    "kind": "page",
+    "title": "Linux kernel documentation, ext4",
+    "url": "https://docs.kernel.org/admin-guide/ext4.html",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 41893,
+    "sha256": "76dc80682680e52080a649c6df233e00d332e222a595b957e40f33eba402506b",
+    "facts": [
+      "auto_da_alloc"
+    ]
+  },
+  "createfilew": {
+    "kind": "page",
+    "title": "Microsoft Learn, CreateFileW",
+    "url": "https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew",
+    "revision": "live page",
+    "licence": "publisher's terms; never committed",
+    "fetched": "2026-10-16",
+    "size": 115313,
+    "sha256": "ae9a704c600c56e7d81d08a53ba38f275016cca38a23dfb4315df0f3b7907afd",
+    "facts": [
+      "FILE_SHARE_DELETE"
+    ]
+  }
+}

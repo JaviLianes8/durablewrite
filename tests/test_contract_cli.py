@@ -1,0 +1,43 @@
+"""Command line message limits and the exit-3 warning, on every platform."""
+
+from __future__ import annotations
+
+import errno
+import io
+from pathlib import Path
+
+import pytest
+
+from durablewrite import _write
+from durablewrite._cli import _cut, _short, main
+
+
+def test_quoted_values_keep_at_most_40_characters() -> None:
+    assert _short("a" * 40) == repr("a" * 40)
+    assert _short("b" * 41) == repr("b" * 37 + "...")
+
+
+def test_messages_are_cut_exactly_past_120_characters() -> None:
+    assert _cut("a" * 120) == "a" * 120
+    assert _cut("b" * 60 + "c" * 61) == "b" * 58 + "..." + "c" * 59
+    assert _cut("x" * 200 + "name.json'").endswith("name.json'")
+    assert _cut("") == ""
+
+
+def test_an_unsynced_directory_gives_status_3_and_a_cut_warning_naming_the_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def refuse(directory: str) -> None:
+        raise PermissionError(errno.EACCES, "Permission denied", directory)
+
+    monkeypatch.setattr(_write, "fsync_directory", refuse)
+    for name, cut in (("t", False), ("w" * 150, True)):
+        target = tmp_path / name
+        monkeypatch.setattr("sys.stdin", io.TextIOWrapper(io.BytesIO(b"data")))
+        assert main([str(target)]) == 3
+        line = capsys.readouterr().err.splitlines()[-1]
+        prefix = "durablewrite: warning: "
+        assert line.startswith(prefix + str(target)[:50])
+        message = line[len(prefix) :]
+        assert len(message) <= 120 and ("..." in message or not cut)
+        assert target.read_bytes() == b"data"

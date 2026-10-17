@@ -1,40 +1,106 @@
-"""The atomic write context manager: temp file, flush, fsync, rename, fsync dir."""
+"""The public context manager and the argument checks it runs before any I/O."""
 
 from __future__ import annotations
 
-import errno
-import os
-from collections.abc import Iterator
-from contextlib import contextmanager
-from typing import IO, Any
+from contextlib import AbstractContextManager
+from typing import IO, Any, Literal, overload
 
-from ._errors import DirectorySyncError
-from ._fs import (
-    StrPath,
-    apply_metadata,
-    create_temp,
-    existing_stat,
-    fsync_directory,
-    resolve_target,
-)
+from ._check import check_flag, check_permissions, check_target, check_text_options
+from ._fs import StrPath
 from ._options import DEFAULT_RETRY, FsyncLevel, RetryPolicy, resolve_fsync
-from ._replace import publish, remove_temp
-
-_VALID_MODES = ("w", "wb")
+from ._write import Plan, run
 
 
-def _check_mode(mode: str, encoding: str | None, newline: str | None) -> bool:
-    if mode not in _VALID_MODES:
-        raise ValueError(f"mode must be one of {_VALID_MODES!r}, got {mode!r}")
+def build_plan(
+    path: StrPath,
+    mode: str,
+    *,
+    encoding: str | None,
+    newline: str | None,
+    sync: tuple[bool, bool],
+    overwrite: bool,
+    preserve_mode: bool,
+    permissions: int | None,
+    preserve_owner: bool,
+    follow_symlinks: bool,
+    retry: RetryPolicy,
+) -> Plan:
+    """Check every argument of a write and return them as a :class:`Plan`."""
+    if not isinstance(mode, str):
+        raise TypeError("mode must be a str")
+    if mode not in ("w", "wb"):
+        raise ValueError("mode must be 'w' or 'wb'")
     binary = mode == "wb"
-    if binary and encoding is not None:
-        raise ValueError("encoding is not allowed in binary mode")
-    if binary and newline is not None:
-        raise ValueError("newline is not allowed in binary mode")
-    return binary
+    check_text_options(binary, encoding, newline)
+    if not isinstance(retry, RetryPolicy):
+        raise TypeError("retry must be a RetryPolicy")
+    return Plan(
+        path=check_target(path),
+        binary=binary,
+        encoding=encoding,
+        newline=newline,
+        sync_file=sync[0],
+        sync_dir=sync[1],
+        overwrite=check_flag("overwrite", overwrite),
+        preserve_mode=check_flag("preserve_mode", preserve_mode),
+        permissions=check_permissions(permissions),
+        preserve_owner=check_flag("preserve_owner", preserve_owner),
+        follow_symlinks=check_flag("follow_symlinks", follow_symlinks),
+        retry=retry,
+    )
 
 
-@contextmanager
+@overload
+def atomic_write(
+    path: StrPath,
+    mode: Literal["w"] = ...,
+    *,
+    encoding: str | None = ...,
+    newline: str | None = ...,
+    durable: bool = ...,
+    fsync_dir: bool = ...,
+    fsync: FsyncLevel | None = ...,
+    overwrite: bool = ...,
+    preserve_mode: bool = ...,
+    permissions: int | None = ...,
+    preserve_owner: bool = ...,
+    follow_symlinks: bool = ...,
+    retry: RetryPolicy = ...,
+) -> AbstractContextManager[IO[str]]: ...
+@overload
+def atomic_write(
+    path: StrPath,
+    mode: Literal["wb"],
+    *,
+    encoding: None = ...,
+    newline: None = ...,
+    durable: bool = ...,
+    fsync_dir: bool = ...,
+    fsync: FsyncLevel | None = ...,
+    overwrite: bool = ...,
+    preserve_mode: bool = ...,
+    permissions: int | None = ...,
+    preserve_owner: bool = ...,
+    follow_symlinks: bool = ...,
+    retry: RetryPolicy = ...,
+) -> AbstractContextManager[IO[bytes]]: ...
+@overload
+def atomic_write(
+    path: StrPath,
+    mode: str,
+    *,
+    encoding: str | None = ...,
+    newline: str | None = ...,
+    durable: bool = ...,
+    fsync_dir: bool = ...,
+    fsync: FsyncLevel | None = ...,
+    overwrite: bool = ...,
+    preserve_mode: bool = ...,
+    permissions: int | None = ...,
+    preserve_owner: bool = ...,
+    follow_symlinks: bool = ...,
+    retry: RetryPolicy = ...,
+) -> AbstractContextManager[IO[Any]]: ...
 def atomic_write(
     path: StrPath,
     mode: str = "w",
@@ -50,92 +116,65 @@ def atomic_write(
     preserve_owner: bool = False,
     follow_symlinks: bool = True,
     retry: RetryPolicy = DEFAULT_RETRY,
-) -> Iterator[IO[Any]]:
+) -> AbstractContextManager[IO[Any]]:
     """Write to ``path`` so readers only ever see the old file or the complete new one.
 
-    The block writes to a temp file created in the target's own directory (so
-    the final rename never crosses a filesystem). When the block exits normally
-    the data is flushed, fsynced according to ``fsync``, and moved onto ``path``
-    with ``os.replace``. If the block raises, ``path`` is untouched and the temp
-    file is removed. Closing the handle inside the block is an error: the write
-    is discarded and :class:`ValueError` is raised. While it is written, the
-    temp file is only readable by its owner whenever the final mode comes from
-    ``permissions`` or from the replaced file.
+    The block writes to a temp file in the target's own directory. When it exits
+    normally the data is flushed, synced as ``fsync`` asks and renamed onto
+    ``path``; if it raises, ``path`` is untouched and the temp file removed.
+    Arguments are checked when this is called, before any file is touched.
+    Closing the handle inside the block discards the write with ValueError.
+
+    >>> import os, tempfile
+    >>> with tempfile.TemporaryDirectory() as folder:
+    ...     path = os.path.join(folder, "notes.txt")
+    ...     with atomic_write(path) as f:
+    ...         _ = f.write("hello")
+    ...     print(open(path, encoding="utf-8").read())
+    hello
 
     Args:
-        path: The file to create or replace.
+        path: The file to create or replace (``str`` or ``os.PathLike[str]``).
         mode: ``"w"`` for text (UTF-8 unless ``encoding`` is given) or ``"wb"``.
-        encoding: Text encoding; not allowed in binary mode.
-        newline: Passed to the text wrapper as in :func:`open`.
-        durable: Legacy flag for the file fsync; ignored when ``fsync`` is given.
-        fsync_dir: Legacy flag for the directory fsync; ignored when ``fsync`` is given.
+        encoding, newline: As for :func:`open`; text mode only.
+        durable, fsync_dir: Legacy flags for the file and directory sync, used
+            only when ``fsync`` is None. Both default to True, meaning ``"full"``.
         fsync: ``"none"``, ``"file"`` or ``"full"`` (see :data:`FsyncLevel`).
-            Defaults to the legacy flags, which mean ``"full"``.
         overwrite: When False, publish only if nothing exists at ``path`` and
             raise :class:`FileExistsError` otherwise, atomically.
-        preserve_mode: Copy the permission bits of an existing target (POSIX).
+        preserve_mode: Copy the permission bits of the replaced file (POSIX).
             New files get ``0o666`` minus the umask, as with :func:`open`.
-        permissions: Explicit permission bits; wins over ``preserve_mode``.
-            On Windows only the read-only flag is affected.
-        preserve_owner: Copy uid and gid of an existing target (POSIX only;
-            usually needs privileges to change the uid). Ignored on Windows.
-        follow_symlinks: When ``path`` is a symlink, replace the file it points
-            to and keep the link (default), or replace the link itself.
+        permissions: Explicit bits from 0 to ``0o7777``; wins over
+            ``preserve_mode``. On Windows only the read-only flag is affected.
+        preserve_owner: Copy uid and gid of the replaced file (POSIX only).
+        follow_symlinks: Write through a symlink and keep it (default), or
+            replace the link itself.
         retry: How long to retry a rename blocked by a Windows lock.
 
     Raises:
-        ValueError: An invalid ``mode``, ``fsync`` or argument combination, or
-            a ``path`` that is empty or ends with a path separator.
-        IsADirectoryError: ``path`` is an existing directory (or, when
-            following symlinks, a link to one).
+        TypeError: ``path`` is bytes, an on/off option is not a bool, or another
+            argument has the wrong type.
+        ValueError: A bad ``mode``, ``fsync``, ``newline`` or ``permissions``,
+            or a ``path`` that is empty, contains NUL, ends with a separator or
+            (on Windows) names an alternate data stream.
+        LookupError: An unknown ``encoding`` or one that is not a text encoding.
+        IsADirectoryError: ``path`` is a directory.
+        OSError: ``path`` is a FIFO, device or socket (``errno.EINVAL``).
         FileExistsError: ``overwrite`` is False and ``path`` exists.
         SharingViolationError: The rename stayed blocked for the whole retry budget.
-        DirectorySyncError: The file was replaced, but the directory fsync failed.
+        DirectorySyncError: The file was replaced, but the directory sync failed.
     """
-    binary = _check_mode(mode, encoding, newline)
-    sync_file, sync_dir = resolve_fsync(fsync, durable, fsync_dir)
-    target = resolve_target(os.fspath(path), follow_symlinks)
-    if os.path.isdir(target) and not os.path.islink(target):
-        raise IsADirectoryError(errno.EISDIR, "target is a directory", target)
-    if not overwrite and os.path.lexists(target):
-        raise FileExistsError(errno.EEXIST, "target already exists", target)
-    directory = os.path.dirname(os.path.abspath(target))
-    existing = existing_stat(target, follow_symlinks)
-    private = permissions is not None or (preserve_mode and existing is not None)
-    tmp: str | None = None
-    published = False
-    try:
-        fd, tmp = create_temp(directory, os.path.basename(target), private)
-        try:
-            if binary:
-                handle: IO[Any] = os.fdopen(fd, "wb")
-            else:
-                handle = os.fdopen(fd, "w", encoding=encoding or "utf-8", newline=newline)
-        except BaseException:
-            os.close(fd)
-            raise
-        with handle as f:
-            yield f
-            f.flush()
-            apply_metadata(
-                f.fileno(),
-                tmp,
-                existing,
-                preserve_mode=preserve_mode,
-                permissions=permissions,
-                preserve_owner=preserve_owner,
-            )
-            if sync_file:
-                os.fsync(f.fileno())
-        publish(tmp, target, overwrite=overwrite, retry=retry)
-        published = True
-    finally:
-        if tmp is not None and not published:
-            remove_temp(tmp, retry)
-    if sync_dir:
-        try:
-            fsync_directory(directory)
-        except OSError as exc:
-            raise DirectorySyncError(
-                exc.errno, f"file replaced, but its directory was not synced: {exc}", directory
-            ) from exc
+    plan = build_plan(
+        path,
+        mode,
+        encoding=encoding,
+        newline=newline,
+        sync=resolve_fsync(fsync, durable, fsync_dir),
+        overwrite=overwrite,
+        preserve_mode=preserve_mode,
+        permissions=permissions,
+        preserve_owner=preserve_owner,
+        follow_symlinks=follow_symlinks,
+        retry=retry,
+    )
+    return run(plan)

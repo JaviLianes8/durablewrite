@@ -5,11 +5,13 @@ from __future__ import annotations
 import errno
 import os
 import stat
+from collections.abc import Callable
 from contextlib import suppress
 
 from ._errors import SharingViolationError
 from ._fs import try_remove
 from ._options import RetryPolicy
+from ._win import windows_move
 
 # ERROR_ACCESS_DENIED, ERROR_SHARING_VIOLATION, ERROR_LOCK_VIOLATION.
 _TRANSIENT_WINERRORS = frozenset({5, 32, 33})
@@ -47,9 +49,22 @@ def _create_new(tmp: str, target: str) -> None:
         os.remove(tmp)
 
 
-def publish(tmp: str, target: str, *, overwrite: bool, retry: RetryPolicy) -> None:
-    """Rename ``tmp`` onto ``target``, retrying transient Windows locks only."""
-    move = os.replace if overwrite else _create_new
+def _mover(overwrite: bool, write_through: bool) -> Callable[[str, str], None]:
+    if write_through and os.name == "nt":
+        return windows_move(replace=overwrite)
+    return os.replace if overwrite else _create_new
+
+
+def publish(
+    tmp: str, target: str, *, overwrite: bool, retry: RetryPolicy, write_through: bool = False
+) -> None:
+    """Rename ``tmp`` onto ``target``, retrying transient Windows locks only.
+
+    ``write_through`` asks Windows not to return before the move is on disk
+    (``MOVEFILE_WRITE_THROUGH``); POSIX makes the rename durable with a
+    directory fsync afterwards instead.
+    """
+    move = _mover(overwrite, write_through)
     delays = retry.delays()
     attempt = 1
     while True:

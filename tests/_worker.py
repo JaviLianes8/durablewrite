@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _payload import make_payload
 
-from durablewrite import atomic_write, write_bytes_atomic
+from durablewrite import RetryPolicy, atomic_write, write_bytes_atomic
 
 _CHUNK = 16 * 1024
 
@@ -32,8 +32,12 @@ def _loop(target: str, size: int) -> None:
 
 
 def _writes(target: str, writer: int, count: int) -> None:
+    # Four writers and a busy reader can keep a slow Windows machine locked for longer
+    # than the default budget; this test is about torn files, not about that budget.
+    patient = RetryPolicy(max_attempts=60, max_delay=0.2)
     for generation in range(1, count + 1):
-        write_bytes_atomic(target, make_payload(generation, 64 * 1024, writer), fsync="none")
+        payload = make_payload(generation, 64 * 1024, writer)
+        write_bytes_atomic(target, payload, fsync="none", retry=patient)
     print("done", flush=True)
 
 
