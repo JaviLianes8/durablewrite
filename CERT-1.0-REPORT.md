@@ -10,7 +10,7 @@ Progress:
 - [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [x] Packaging, e2e and upgrade from PyPI 0.2.0 (items 8, 10, 13, 14), author run
 - [x] Five QA lenses report PASS (item 19)
-- [ ] Independent reviewer reports PASS (item 16)
+- [x] Independent reviewer reports PASS (item 16)
 - [x] Gates (item 15), final run
 - [ ] PR and trace guard CLEAN (item 17); merge and publish left to the maintainer
 
@@ -33,9 +33,9 @@ Progress:
 | 13 | pyproject 1.0.0, Production/Stable | PASS: pinned by `tests/test_packaging.py` |
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: fresh clone at 797a504: format, lint, `mypy --strict src` and `src tests`, `pytest` 386 passed, 79 skipped on a second Windows PC (CPython 3.14, oracles not fetched there); 443 passed, 22 skipped on WSL as `nobody`, 441 and 24 as root, with the oracles fetched (426/39 and 428/37 without) |
-| 16 | Independent reviewer | pending |
+| 16 | Independent reviewer | PASS: round 1 FAIL at ef4eaf5, round 2 FAIL at 9fb1509, round 3 FAIL at 3355ddd, round 4 PASS at cb6c5dd |
 | 17 | PR and trace guard | pending; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author 50 on two platforms; blind lens e 167 plus 10; lens a 30, 25 and 5; lens b 14 and 4; lens c 40, 19 and 1; lens d 26 and 3; every survivor killed by a contract or argued equivalent |
+| 18 | Contracts bite (mutations) | PASS: author 50 on two platforms; blind lens e 167 plus 10; reviewer 35, 5, 16 and 4; lens a 30, 25 and 5; lens b 14 and 4; lens c 40, 19 and 1; lens d 26 and 3; every survivor killed by a contract or argued equivalent |
 | 19 | Five independent QA lenses | PASS: a round 4, b round 3, c round 4, d round 4, e round 3 |
 
 ## Baseline on 0.2.0 (before any change)
@@ -283,3 +283,18 @@ findings plus one sweep of at most 40 mutations on the code changed since.
 | e. Contract strength (blind) | 1 | d7c84c3 | FAIL | 167 mutations of its own over all eleven modules (Windows 3.13.2; survivors rerun on WSL as `nobody` and as root): 131 killed, 8 equivalent, 28 missing contracts (temp name collisions, symlink loops, distinct uid and gid, directory descriptor leaks, cleanup reporting a file someone else removed, POSIX permission errors waited out, lock violation retries, error errno and filename, `remove_temp` raising, `write_json_atomic` pass-through, `write_bytes_atomic(p, 3)`, cleanup defaults, pattern, order, held files and newlines, and the CLI options reaching the library, Ctrl-C status, `--json` UTF-8). One was a code bug: cleanup listed files that vanished before it removed them. Fixed and pinned in 1de1c6e (`tests/test_contract_blind*.py`) |
 | e | 2 | 1de1c6e | FAIL | the 28 killed on their platforms; 10 mutations of the fix, 3 survivors (a vanished temp waited out on an error path; the Windows read-only branch reporting a vanished file). Pinned in c4cae3f |
 | e | 3 | c4cae3f | PASS | the three killed; equivalents over all rounds: `O_BINARY` and `O_CLOEXEC` flags, winerror 33 in the delete-lock set, the `PermissionError` check on Windows lock errors, the redundant `raw.close()` in `_wrap`, an extra flush, `match` versus `search` on an anchored pattern, the regular-file check in the CLI redirect test, and two `missing_ok` defaults no caller observes |
+
+## Independent review (item 16)
+
+Fresh reviewers that read the certification rules and CERT-1.0.md first, ran every gate
+alone on fresh clones on Windows and WSL, re-derived the report's claims, ran their own
+mutations and posted nothing to GitHub. Round 3 was relaunched with a fresh reviewer after
+a usage limit cut the previous one.
+
+| Round | Head | Verdict | Findings and outcome |
+| --- | --- | --- | --- |
+| 1 | ef4eaf5 | FAIL (6, 18) | gates, claims, packaging, ground truth and house rules confirmed; 35 mutations, 5 survivors: the long-name temp stem (`- 9` and the 8-character digest), the CLI 40-character quote boundary, `write_json_atomic` dropping `fsync`, and the drive handling of the stream check, which exposed that a drive-relative target on another drive was not pinned on Windows. Nits: docstring `Raises` and the 130 exit status missing in places; report counts depend on the fetched oracles; machine names in the report. Fixed in 9fb1509 |
+| 2 | 9fb1509 | FAIL (5, 6, 18) | the five confirmed killed; the new Windows pin had no contract (2 survivors), and `ntpath.basename` dropped a drive-like prefix so `C:a:s` slipped past the stream check and left an empty file. Fixed in 3355ddd |
+| 3 | 3355ddd | FAIL (6, 18) | both confirmed; 16 mutations, 3 survivors (splitting on one separator only); an invalid escape in a test. Fixed in cb6c5dd, with ruff's W rules enabled |
+| 4 | cb6c5dd | PASS | the four remaining mutants killed on their platforms; `-W error::SyntaxWarning` clean; every gate exits 0 alone on Windows and WSL |
+
