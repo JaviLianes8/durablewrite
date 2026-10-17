@@ -154,9 +154,31 @@ def test_a_drive_relative_target_is_pinned_with_the_drive_cwd(
     second.mkdir()
     monkeypatch.chdir(first)
     # A cwd on another drive: joining with it would leave "C:t" relative.
-    monkeypatch.setattr(os, "getcwd", lambda: "Z:\elsewhere")
+    monkeypatch.setattr(os, "getcwd", lambda: r"Z:\elsewhere")
     with atomic_write(os.path.splitdrive(str(tmp_path))[0] + "t") as f:
         f.write("x")
         os.chdir(second)
     assert (first / "t").read_text() == "x"
     assert os.listdir(second) == [] and os.listdir(first) == ["t"]
+
+
+@windows_only
+@pytest.mark.parametrize("separator", ["\\", "/"])
+def test_a_colon_in_a_directory_is_left_to_the_os_on_either_separator(
+    tmp_path: Path, separator: str
+) -> None:
+    path = separator.join([str(tmp_path).replace("\\", separator), "dd:x", "f"])
+    with pytest.raises(OSError) as info:
+        atomic_write(path).__enter__()
+    assert not isinstance(info.value, ValueError)
+    assert list(tmp_path.iterdir()) == []
+
+
+@posix_only
+def test_a_colon_in_a_posix_name_is_an_ordinary_character(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    with atomic_write("a:b") as f:
+        f.write("x")
+    assert (tmp_path / "a:b").read_text() == "x"
