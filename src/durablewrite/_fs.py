@@ -138,13 +138,14 @@ def fsync_directory(directory: str) -> None:
         os.close(fd)
 
 
-def try_remove(path: str) -> bool | None:
-    """Remove ``path``: True if removed or gone, None if locked, False on other errors."""
+def try_remove(path: str, *, missing_ok: bool = True) -> bool | None:
+    """Remove ``path``: True if removed (or already gone and ``missing_ok``), None if
+    locked, False on other errors."""
     try:
         os.remove(path)
         return True
     except FileNotFoundError:
-        return True
+        return missing_ok
     except PermissionError as exc:
         if os.name != "nt":
             return False
@@ -156,7 +157,7 @@ def try_remove(path: str) -> bool | None:
             os.remove(path)
             return True
         except FileNotFoundError:
-            return True
+            return missing_ok
         except OSError:
             return None
     except OSError:

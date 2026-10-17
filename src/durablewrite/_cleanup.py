@@ -76,6 +76,6 @@ def cleanup_temp_files(
                     continue
             except OSError:
                 continue
-            if try_remove(entry.path):
+            if try_remove(entry.path, missing_ok=False):
                 removed.append(entry.path)
     return sorted(removed)
